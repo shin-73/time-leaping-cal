@@ -284,8 +284,14 @@ function App() {
               value={inputValue} 
               onChange={(e) => setInputValue(e.target.value.replace(/[^0-9]/g, ''))} 
               onBlur={() => isSubmitEnabled && handleSearch()} 
-              placeholder="2026" 
-              className="w-full bg-transparent border-none text-8xl md:text-[10rem] font-black placeholder:text-gray-100 focus:outline-none text-center" 
+              placeholder={
+                selectedEra === '令和' ? '6' :
+                selectedEra === '平成' ? '31' :
+                selectedEra === '昭和' ? '64' :
+                selectedEra === '大正' ? '14' :
+                selectedEra === '明治' ? '45' : '2026'
+              } 
+              className="w-full bg-transparent border-none text-8xl md:text-[10rem] font-black placeholder:text-gray-200 focus:outline-none text-center" 
             />
             <div className="absolute -bottom-20 left-0 right-0 flex flex-wrap justify-center gap-2 md:gap-4 px-4">
               {(['西暦', '明治', '大正', '昭和', '平成', '令和'] as EraType[]).map(era => (
