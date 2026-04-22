@@ -273,11 +273,13 @@ function App() {
         <form onSubmit={handleSearch} className="space-y-16">
           <div className="relative">
             <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value.replace(/[^0-9]/g, ''))} onBlur={() => isSubmitEnabled && handleSearch()} placeholder="2026" className="w-full bg-transparent border-none text-8xl md:text-[10rem] font-black placeholder:text-gray-100 focus:outline-none text-center" />
-            <div className="absolute -bottom-16 left-0 right-0 flex justify-center gap-4 md:gap-8">
+            <div className="absolute -bottom-20 left-0 right-0 flex flex-wrap justify-center gap-2 md:gap-4 px-4">
               {(['西暦', '明治', '大正', '昭和', '平成', '令和'] as EraType[]).map(era => (
                 <label key={era} className="flex items-center cursor-pointer">
                   <input type="radio" checked={selectedEra === era} onChange={() => setSelectedEra(era)} className="sr-only" />
-                  <span className={`px-4 py-2 text-xs md:text-sm font-bold border-2 transition-all ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-300 hover:text-black'}`}>{era}</span>
+                  <span className={`px-3 py-2 text-[10px] md:text-sm font-bold border-2 transition-all whitespace-nowrap ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-300 hover:text-black'}`}>
+                    {era}
+                  </span>
                 </label>
               ))}
             </div>
