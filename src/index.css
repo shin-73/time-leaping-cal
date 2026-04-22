@@ -7,8 +7,8 @@
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #000000;
+    --background: #fafafa;
+    --foreground: #333333;
   }
 }
 
@@ -29,10 +29,4 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-}
-
-/* Global reset for rounded corners and shadows if any tailwind defaults remain */
-* {
-  border-radius: 0 !important;
-  box-shadow: none !important;
 }
