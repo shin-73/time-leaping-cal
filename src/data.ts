@@ -77,7 +77,7 @@ export const getYearData = (year: number, era: string): YearData => {
     events: mockData?.events || [`${year}年の主な出来事`],
     buzzwords: mockData?.buzzwords || ['(流行語データなし)'],
     songs: mockData?.songs || ['(大ヒット曲データなし)'],
-    imageUrl: mockData?.imageUrl || (DEFAULT_IMAGES as any)[era] || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80'
+    imageUrl: mockData?.imageUrl || DEFAULT_IMAGES[era as keyof typeof DEFAULT_IMAGES] || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80'
   };
 };
 

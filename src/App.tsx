@@ -1,20 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { Settings, Search, Calendar, Share, ChevronLeft, CalendarHeart } from 'lucide-react';
-import { convertAdToJapaneseEra, convertEraToAdYear, getLifeStage, getYearData, getThemeForEra } from './data';
+import React, { useState } from 'react';
+import { Search, Calendar, Share, CalendarHeart } from 'lucide-react';
+import { convertAdToJapaneseEra, convertEraToAdYear, getLifeStage, getYearData, getThemeForEra, type YearData } from './data';
 
 function App() {
   const [query, setQuery] = useState('');
   const [activeYear, setActiveYear] = useState<number | null>(null);
-  const [birthDate, setBirthDate] = useState<string>('');
+  const [birthDate, setBirthDate] = useState<string>(() => {
+    return localStorage.getItem('birthDate') || '';
+  });
   const [showSettings, setShowSettings] = useState(false);
-
-
-  useEffect(() => {
-    const saved = localStorage.getItem('birthDate');
-    if (saved) {
-      setBirthDate(saved);
-    }
-  }, []);
 
   const saveBirthDate = (date: string) => {
     setBirthDate(date);
@@ -42,7 +36,7 @@ function App() {
     }
   };
 
-  const shareToTwitter = (yearData: any, lifeStageData: any) => {
+  const shareToTwitter = (yearData: YearData, lifeStageData: { age: number, stage: string } | null) => {
     const eraStr = convertAdToJapaneseEra(yearData.year);
     const eraYearText = eraStr.eraYear === 1 ? '元年' : `${eraStr.eraYear}年`;
     let text = `${yearData.year}年（${eraStr.era}${eraYearText}）の出来事や流行を振り返りました！\n`;
