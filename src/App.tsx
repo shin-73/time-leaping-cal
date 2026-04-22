@@ -142,14 +142,14 @@ function App() {
         <Settings className="w-6 h-6" />
       </button>
 
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic leading-none whitespace-nowrap">Time Leap Cal</h1>
-          <p className="text-[10px] tracking-[0.3em] md:tracking-[0.5em] uppercase opacity-30 font-medium whitespace-nowrap">Chronological Transition System</p>
+      <div className="w-full max-w-4xl px-4 space-y-6 md:space-y-12">
+        <div className="text-center space-y-2 md:space-y-4">
+          <h1 className="text-4xl md:text-8xl font-black tracking-tighter uppercase italic leading-none whitespace-nowrap">Time Leap Cal</h1>
+          <p className="text-[10px] md:text-sm tracking-[0.3em] md:tracking-[0.8em] uppercase opacity-30 font-medium whitespace-nowrap">Chronological Transition System</p>
         </div>
 
-        <form onSubmit={handleSearch} className="space-y-10">
-          <div className="space-y-6">
+        <form onSubmit={handleSearch} className="space-y-16 md:space-y-24">
+          <div className="space-y-6 md:space-y-12">
             <div className="relative">
               <input 
                 type="number"
@@ -158,10 +158,10 @@ function App() {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={getPlaceholder()}
-                className="w-full px-0 py-8 bg-transparent border-b-4 border-black text-7xl font-black placeholder:text-gray-100 focus:outline-none text-center"
+                className="w-full px-0 py-6 md:py-12 bg-transparent border-none text-7xl md:text-[12rem] font-black placeholder:text-gray-100 focus:outline-none text-center"
                 autoFocus
               />
-              <div className="absolute -bottom-10 left-0 right-0 flex flex-row justify-center gap-2 md:gap-4 overflow-x-auto no-scrollbar">
+              <div className="absolute -bottom-12 md:-bottom-20 left-0 right-0 flex flex-row justify-center gap-4 md:gap-12">
                 {(['西暦', '明治', '大正', '昭和', '平成', '令和'] as EraType[]).map(era => (
                   <label key={era} className="flex-shrink-0 flex items-center cursor-pointer">
                     <input 
@@ -171,7 +171,7 @@ function App() {
                       onChange={() => setSelectedEra(era)}
                       className="sr-only"
                     />
-                    <span className={`px-2 md:px-4 py-2 text-[10px] md:text-xs font-bold border transition-colors whitespace-nowrap ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
+                    <span className={`px-2 md:px-8 py-2 md:py-4 text-xs md:text-2xl font-bold border-2 transition-colors whitespace-nowrap ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
                       {era}
                     </span>
                   </label>
@@ -180,13 +180,15 @@ function App() {
             </div>
           </div>
 
-          <button 
-            type="submit"
-            disabled={!isSubmitEnabled}
-            className={`w-full py-8 text-xs font-black uppercase tracking-[1em] ${isSubmitEnabled ? 'bg-black text-white cursor-pointer' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
-          >
-            Leap
-          </button>
+          <div className="pt-8">
+            <button 
+              type="submit"
+              disabled={!isSubmitEnabled}
+              className={`w-full py-8 md:py-12 text-xs md:text-xl font-black uppercase tracking-[1em] ${isSubmitEnabled ? 'bg-black text-white cursor-pointer' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+            >
+              Leap
+            </button>
+          </div>
         </form>
       </div>
 
