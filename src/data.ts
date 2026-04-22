@@ -184,7 +184,6 @@ export const getLifeStage = (birthDateStr: string | null, targetYear: number) =>
   // So year - cohortYear = 7 => Grade 1.
   // Age in that target year... roughly:
   const age = targetYear - bYear; 
-  const diff = targetYear - cohortYear;
   
   let stage = '';
   
