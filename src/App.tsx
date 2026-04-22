@@ -44,7 +44,7 @@ function App() {
     if (lifeStageData) {
       text += `この時私は${lifeStageData.age}歳（${lifeStageData.stage}）でした。\n`;
     }
-    text += `主な出来事: ${yearData.events.join(' / ')}\n#TimeLeapingCal`;
+    text += `主な出来事: ${yearData.events.join(' / ')}\n#TimeLeapCal`;
     
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
@@ -65,7 +65,7 @@ function App() {
         {/* Search Form (Top Left - Always displayed) */}
         <div className="bg-white rounded-3xl shadow-xl p-8 space-y-8 text-center shrink-0">
           <div className="space-y-2">
-            <h1 className="text-3xl font-serif text-stone-800 tracking-wider">Time-Leaping Cal</h1>
+            <h1 className="text-3xl font-serif text-stone-800 tracking-wider">Time-Leap Cal</h1>
             <p className="text-stone-500 font-sans text-xs mt-2">西暦から過去の空気感へタイムスリップ</p>
           </div>
 
