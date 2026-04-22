@@ -10,6 +10,18 @@ function App() {
   const [activeYear, setActiveYear] = useState<number | null>(null);
   const [birthDate, setBirthDate] = useState(() => localStorage.getItem('birthDate') || '');
   const [showSettings, setShowSettings] = useState(false);
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
+  const [isImageLoading, setIsImageLoading] = useState(false);
+  const [photoInfo, setPhotoInfo] = useState<{ name: string; username: string } | null>(null);
+
+  const getEraColor = (year: number) => {
+    if (year >= 2019) return 'f3f4f6'; // Reiwa
+    if (year >= 1989) return 'e0e7ff'; // Heisei
+    if (year >= 1970) return 'f59e0b'; // Showa Late
+    if (year >= 1926) return '9ca3af'; // Showa Early
+    if (year >= 1912) return 'fef3c7'; // Taisho
+    return '064e3b'; // Meiji
+  };
 
   const saveBirthDate = (date: string) => {
     setBirthDate(date);
@@ -31,6 +43,65 @@ function App() {
     }
 
     if (targetYear >= 1868 && targetYear <= new Date().getFullYear() + 5) {
+      // Clear previous state immediately
+      setBackgroundImageUrl('');
+      setIsImageLoading(true);
+
+      // Fetch from Wikimedia Commons
+      const searchQuery = `incategory:"${targetYear} in Japan"`;
+      const fallbackQuery = `"${targetYear} Japan street" OR "${targetYear} Japan history"`;
+      
+      const fetchFromWikimedia = async (q: string) => {
+        const searchUrl = `https://commons.wikimedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&srnamespace=6&format=json&origin=*`;
+        const res = await fetch(searchUrl);
+        const data = await res.json();
+        return data.query.search || [];
+      };
+
+      const getImageUrl = async (title: string) => {
+        const infoUrl = `https://commons.wikimedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1200&format=json&origin=*`;
+        const res = await fetch(infoUrl);
+        const data = await res.json();
+        const pages = data.query.pages;
+        const pageId = Object.keys(pages)[0];
+        return pages[pageId].imageinfo?.[0];
+      };
+
+      const executeLeap = async () => {
+        try {
+          let results = await fetchFromWikimedia(searchQuery);
+          if (results.length === 0) results = await fetchFromWikimedia(fallbackQuery);
+          
+          if (results.length > 0) {
+            // Try first few results to find a non-modern one
+            for (const item of results.slice(0, 5)) {
+              const info = await getImageUrl(item.title);
+              if (info) {
+                const metadata = info.extmetadata || {};
+                const description = (metadata.ObjectName?.value || "") + (metadata.ImageDescription?.value || "");
+                
+                // Filtering out modern stuff if year is old
+                if (targetYear < 2010 && /modern|2020|2021|2022|2023|2024|2025/i.test(description)) continue;
+                
+                setBackgroundImageUrl(info.thumburl || info.url);
+                setIsImageLoading(false);
+                return;
+              }
+            }
+          }
+          // No good match
+          const color = getEraColor(targetYear);
+          setBackgroundImageUrl(`https://placehold.co/1200x800/${color}/${color}`);
+          setIsImageLoading(false);
+        } catch (err) {
+          const color = getEraColor(targetYear);
+          setBackgroundImageUrl(`https://placehold.co/1200x800/${color}/${color}`);
+          setIsImageLoading(false);
+        }
+      };
+
+      executeLeap();
+
       setActiveYear(targetYear);
     } else {
       alert('正しい数字を入力してください（1868年以降）。');
@@ -60,12 +131,21 @@ function App() {
     return (
       <div className="min-h-screen bg-white text-black relative">
         {/* Top 2/3: Image Background */}
-        <div className="h-[66vh] relative overflow-hidden flex items-center justify-center border-b border-black">
-          <img 
-            src={yearData.imageUrl} 
-            alt={activeYear.toString()}
-            className="absolute inset-0 w-full h-full object-cover opacity-20 grayscale brightness-125"
-          />
+        <div className="h-[66vh] relative overflow-hidden flex items-center justify-center border-b border-black bg-[#f0f0f0]">
+          {backgroundImageUrl && (
+            <img 
+              src={backgroundImageUrl} 
+              alt={activeYear.toString()}
+              onLoad={() => setIsImageLoading(false)}
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
+              style={{ objectPosition: 'center 20%' }}
+            />
+          )}
+          
+          <div className="absolute bottom-6 right-8 text-[10px] font-bold uppercase tracking-[0.2em] opacity-20 hover:opacity-100 transition-opacity flex items-center gap-2 pointer-events-none select-none">
+            <div className="w-4 h-px bg-black opacity-20"></div>
+            Wikimedia Commons
+          </div>
           <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-24 px-4 text-center">
             <h1 className="text-8xl md:text-[10rem] font-black tracking-tighter leading-none">{activeYear}</h1>
             <div className="w-px h-24 md:h-64 bg-black hidden md:block"></div>
