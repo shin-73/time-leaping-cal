@@ -1,10 +1,56 @@
+export type EraType = '西暦' | '明治' | '大正' | '昭和' | '平成' | '令和';
+
 export interface YearData {
   year: number;
   events: string[];
   buzzwords: string[];
   songs: string[];
   imageUrl: string;
+  eraBackground: { buzzwords: string; songs: string; events: string };
 }
+
+export const ERA_BACKGROUNDS: Record<string, { buzzwords: string; songs: string; events: string }> = {
+  '明治': {
+    events: '文明開化が進み、憲法発布や議会開設など日本の近代国家としての骨格が作られました。',
+    buzzwords: '「文明開化」や「断髪令」など、西洋文化の流入に伴う新しい生活様式が広まりました。',
+    songs: '伝統的な邦楽に加え、軍歌や唱歌など西洋の音階を取り入れた新しい調べが歌われ始めました。'
+  },
+  '大正': {
+    events: '大正デモクラシーと呼ばれる民主主義的な運動が広まり、政党政治が本格化しました。',
+    buzzwords: '「モダンガール（モガ）」「モダンボーイ（モボ）」といった自由な若者文化が都会を彩りました。',
+    songs: '蓄音機の普及により「カチューシャの唄」などの流行歌が誕生し、ジャズも街に流れ始めました。'
+  },
+  '昭和_戦前': {
+    events: '近代化が進む一方で戦時色が強まり、人々の生活にも大きな変化が訪れた激動の時代です。',
+    buzzwords: 'カフェ文化や浅草のレビューなど、モダンな世相と伝統的な価値観が共存していました。',
+    songs: '「東京行進曲」や「君恋し」など、都会的で哀愁を帯びた流行歌がラジオから流れました。'
+  },
+  '昭和_戦後': {
+    events: '高度経済成長を遂げ、テレビや冷蔵庫などの家電が普及。人々の生活が劇的に豊かになりました。',
+    buzzwords: '団地生活や週刊誌の創刊など、大衆文化が花開き、新しいライフスタイルが定着しました。',
+    songs: '歌謡曲の全盛期を迎え、美空ひばりからグループ・サウンズまで多様な音楽が親しまれました。'
+  },
+  '平成': {
+    events: 'バブル崩壊後の長い停滞期を経て、インターネットや携帯電話が急速に普及した激変の時代です。',
+    buzzwords: 'デジタル化が進む中で、ギャル文化やインターネットスラングなど多様な流行が生まれました。',
+    songs: 'J-POPが黄金期を迎え、ミリオンセラーが続出。音楽がCDからデジタルへと移行し始めました。'
+  },
+  '令和': {
+    events: 'パンデミックを乗り越え、DX（デジタル・トランスフォーメーション）と多様性の尊重が進んでいます。',
+    buzzwords: 'SNSを通じたトレンドの発信や、サステナビリティへの意識が高まる新しい時代です。',
+    songs: 'ストリーミング配信が主流となり、SNS発のアーティストやボカロ曲がヒットチャートを賑わせています。'
+  },
+};
+
+export const getLabels = (year: number) => {
+  if (year < 1945) {
+    return { events: '主な出来事', songs: '愛唱歌・調べ', buzzwords: '当時の世相・風俗' };
+  }
+  if (year < 1970) {
+    return { events: '主な出来事', songs: '流行歌', buzzwords: '流行・社会現象' };
+  }
+  return { events: '主な出来事', songs: 'ヒット曲', buzzwords: '流行語' };
+};
 
 export const getThemeForEra = (era: string) => {
   switch (era) {
@@ -72,12 +118,20 @@ const DEFAULT_IMAGES = {
 
 export const getYearData = (year: number, era: string): YearData => {
   const mockData = MOCK_YEAR_DATA[year];
+  let eraKey = era;
+  if (era === '昭和') {
+    eraKey = year < 1945 ? '昭和_戦前' : '昭和_戦後';
+  }
+  
+  const background = ERA_BACKGROUNDS[eraKey] || { events: '', buzzwords: '', songs: '' };
+  
   return {
     year,
-    events: mockData?.events || [`${year}年の主な出来事`],
-    buzzwords: mockData?.buzzwords || ['(流行語データなし)'],
-    songs: mockData?.songs || ['(大ヒット曲データなし)'],
-    imageUrl: mockData?.imageUrl || DEFAULT_IMAGES[era as keyof typeof DEFAULT_IMAGES] || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80'
+    events: mockData?.events || [],
+    buzzwords: mockData?.buzzwords || [],
+    songs: mockData?.songs || [],
+    imageUrl: mockData?.imageUrl || DEFAULT_IMAGES[era as keyof typeof DEFAULT_IMAGES] || 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&q=80',
+    eraBackground: background,
   };
 };
 
@@ -134,24 +188,29 @@ export const getLifeStage = (birthDateStr: string | null, targetYear: number) =>
   
   let stage = '';
   
-  if (diff < 0) {
-    stage = '生まれる前';
-  } else if (diff === 0) {
-    stage = '0歳（生まれた年）';
-  } else if (diff >= 1 && diff <= 3) {
-    stage = `乳幼児（${diff}歳頃）`;
-  } else if (diff >= 4 && diff <= 6) {
-    stage = `幼稚園・保育園（${diff}歳頃）`;
-  } else if (diff >= 7 && diff <= 12) {
-    stage = `小学${diff - 6}年生`;
-  } else if (diff >= 13 && diff <= 15) {
-    stage = `中学${diff - 12}年生`;
-  } else if (diff >= 16 && diff <= 18) {
-    stage = `高校${diff - 15}年生`;
-  } else if (diff >= 19 && diff <= 22) {
-    stage = `大学${diff - 18}年生・専門学生`;
+  if (targetYear < bYear) {
+    const yearsToBirth = bYear - targetYear;
+    stage = `生誕まであと ${yearsToBirth} 年`;
+  } else if (targetYear === bYear) {
+    stage = '0歳（誕生）';
   } else {
-    stage = '';
+    // School grade logic (based on cohort)
+    const diff = targetYear - cohortYear;
+    if (diff >= 1 && diff <= 3) {
+      stage = `乳幼児（${targetYear - bYear}歳頃）`;
+    } else if (diff >= 4 && diff <= 6) {
+      stage = `幼稚園・保育園（${targetYear - bYear}歳頃）`;
+    } else if (diff >= 7 && diff <= 12) {
+      stage = `小学${diff - 6}年生`;
+    } else if (diff >= 13 && diff <= 15) {
+      stage = `中学${diff - 12}年生`;
+    } else if (diff >= 16 && diff <= 18) {
+      stage = `高校${diff - 15}年生`;
+    } else if (diff >= 19 && diff <= 22) {
+      stage = `大学${diff - 18}年生・専門学生`;
+    } else {
+      stage = '';
+    }
   }
   
   return {
