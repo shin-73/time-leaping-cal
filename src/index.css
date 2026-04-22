@@ -7,8 +7,8 @@
 
 @layer base {
   :root {
-    --background: #fafafa;
-    --foreground: #333333;
+    --background: #ffffff;
+    --foreground: #000000;
   }
 }
 
@@ -29,4 +29,33 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
+}
+
+/* Global reset to enforce sharp edges and no decorations */
+* {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Custom Scrollbar for a clean look */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #ffffff;
+}
+::-webkit-scrollbar-thumb {
+  background: #000000;
+}
+
+/* Hide number input spinners */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] {
+  -moz-appearance: textfield;
 }
