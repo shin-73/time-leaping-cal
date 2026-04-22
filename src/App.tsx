@@ -95,6 +95,11 @@ function App() {
     };
   };
 
+  // Scroll to top on page transition
+  React.useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeYear]);
+
   // URL Persistence and Back Button Support
   React.useEffect(() => {
     const handlePopState = () => {
