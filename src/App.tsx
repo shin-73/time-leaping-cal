@@ -272,7 +272,16 @@ function App() {
         <p className="text-[10px] tracking-[0.6em] uppercase opacity-20 font-medium">Chronological Transition System</p>
         <form onSubmit={handleSearch} className="space-y-16">
           <div className="relative">
-            <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value.replace(/[^0-9]/g, ''))} onBlur={() => isSubmitEnabled && handleSearch()} placeholder="2026" className="w-full bg-transparent border-none text-8xl md:text-[10rem] font-black placeholder:text-gray-100 focus:outline-none text-center" />
+            <input 
+              type="text" 
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={inputValue} 
+              onChange={(e) => setInputValue(e.target.value.replace(/[^0-9]/g, ''))} 
+              onBlur={() => isSubmitEnabled && handleSearch()} 
+              placeholder="2026" 
+              className="w-full bg-transparent border-none text-8xl md:text-[10rem] font-black placeholder:text-gray-100 focus:outline-none text-center" 
+            />
             <div className="absolute -bottom-20 left-0 right-0 flex flex-wrap justify-center gap-2 md:gap-4 px-4">
               {(['西暦', '明治', '大正', '昭和', '平成', '令和'] as EraType[]).map(era => (
                 <label key={era} className="flex items-center cursor-pointer">
