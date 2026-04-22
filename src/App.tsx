@@ -88,25 +88,6 @@ function App() {
           <div className="max-w-4xl mx-auto space-y-16">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 border-b border-black pb-2 opacity-40">Your Timeline</h3>
-                {lifeStage ? (
-                  <div className="flex items-baseline gap-4">
-                    <span className="text-7xl font-black">{lifeStage.age}</span>
-                    <div>
-                      <div className="text-xl font-bold uppercase tracking-widest">Years Old</div>
-                      <div className="text-sm font-medium opacity-60 uppercase">{lifeStage.stage}</div>
-                    </div>
-                  </div>
-                ) : (
-                  <button 
-                    onClick={() => setShowSettings(true)}
-                    className="text-sm font-bold uppercase tracking-widest border border-black px-6 py-4 hover:bg-black hover:text-white transition-colors"
-                  >
-                    Set Birth Date
-                  </button>
-                )}
-              </div>
-              <div>
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 border-b border-black pb-2 opacity-40">Main Events</h3>
                 <ul className="space-y-6">
                   {yearData.events.map((e, i) => (
@@ -114,17 +95,36 @@ function App() {
                   ))}
                 </ul>
               </div>
+              <div className="space-y-12">
+                <div>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border-b border-black pb-2 opacity-40">Buzzword</h3>
+                  <p className="text-3xl font-black uppercase tracking-tighter">{yearData.buzzwords[0]}</p>
+                </div>
+                <div>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border-b border-black pb-2 opacity-40">Top Hit</h3>
+                  <p className="text-3xl font-black uppercase tracking-tighter">{yearData.songs[0]}</p>
+                </div>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pb-16">
-              <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border-b border-black pb-2 opacity-40">Buzzword</h3>
-                <p className="text-3xl font-black uppercase tracking-tighter">{yearData.buzzwords[0]}</p>
-              </div>
-              <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border-b border-black pb-2 opacity-40">Top Hit</h3>
-                <p className="text-3xl font-black uppercase tracking-tighter">{yearData.songs[0]}</p>
-              </div>
+            <div className="pt-8 border-t border-black/5">
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-6 border-b border-black pb-2 opacity-40">Your Timeline</h3>
+              {lifeStage ? (
+                <div className="flex items-baseline gap-4">
+                  <span className="text-7xl font-black">{lifeStage.age}</span>
+                  <div>
+                    <div className="text-xl font-bold uppercase tracking-widest">Years Old</div>
+                    <div className="text-sm font-medium opacity-60 uppercase">{lifeStage.stage}</div>
+                  </div>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowSettings(true)}
+                  className="text-xs font-bold uppercase tracking-widest border border-black/10 px-6 py-4 hover:bg-black hover:text-white transition-colors opacity-40 hover:opacity-100"
+                >
+                  Set Birth Date
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -134,14 +134,22 @@ function App() {
 
   return (
     <div className="h-screen w-full flex flex-col items-center justify-center p-8 bg-white text-black relative">
-      <div className="max-w-md w-full space-y-16">
-        <div className="text-center space-y-4">
-          <h1 className="text-6xl font-black tracking-tighter uppercase italic leading-none">Time Leap Cal</h1>
-          <p className="text-[10px] tracking-[0.5em] uppercase opacity-30 font-medium">Chronological Transition System</p>
+      {/* Settings Icon (Top Right, Subtle) */}
+      <button 
+        onClick={() => setShowSettings(true)}
+        className="absolute top-8 right-8 p-4 opacity-20 hover:opacity-100 transition-opacity"
+      >
+        <Settings className="w-6 h-6" />
+      </button>
+
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic leading-none whitespace-nowrap">Time Leap Cal</h1>
+          <p className="text-[10px] tracking-[0.3em] md:tracking-[0.5em] uppercase opacity-30 font-medium whitespace-nowrap">Chronological Transition System</p>
         </div>
 
-        <form onSubmit={handleSearch} className="space-y-12">
-          <div className="space-y-8">
+        <form onSubmit={handleSearch} className="space-y-10">
+          <div className="space-y-6">
             <div className="relative">
               <input 
                 type="number"
@@ -153,9 +161,9 @@ function App() {
                 className="w-full px-0 py-8 bg-transparent border-b-4 border-black text-7xl font-black placeholder:text-gray-100 focus:outline-none text-center"
                 autoFocus
               />
-              <div className="absolute -bottom-10 left-0 right-0 flex justify-center gap-4">
+              <div className="absolute -bottom-10 left-0 right-0 flex flex-row justify-center gap-2 md:gap-4 overflow-x-auto no-scrollbar">
                 {(['西暦', '明治', '大正', '昭和', '平成', '令和'] as EraType[]).map(era => (
-                  <label key={era} className="flex items-center cursor-pointer">
+                  <label key={era} className="flex-shrink-0 flex items-center cursor-pointer">
                     <input 
                       type="radio"
                       name="era"
@@ -163,7 +171,7 @@ function App() {
                       onChange={() => setSelectedEra(era)}
                       className="sr-only"
                     />
-                    <span className={`px-4 py-2 text-xs font-bold border transition-colors ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
+                    <span className={`px-2 md:px-4 py-2 text-[10px] md:text-xs font-bold border transition-colors whitespace-nowrap ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
                       {era}
                     </span>
                   </label>
@@ -181,14 +189,6 @@ function App() {
           </button>
         </form>
       </div>
-
-      {/* Settings Icon (Fixed Bottom Right) */}
-      <button 
-        onClick={() => setShowSettings(true)}
-        className="fixed bottom-8 right-8 z-50 p-4 hover:bg-gray-100 bg-white/80 backdrop-blur-sm border border-black/5"
-      >
-        <Settings className="w-8 h-8" />
-      </button>
 
       {/* Settings Modal */}
       {showSettings && (
