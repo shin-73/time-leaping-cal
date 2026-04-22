@@ -10,7 +10,6 @@ function App() {
   const [activeYear, setActiveYear] = useState<number | null>(null);
   const [birthDate, setBirthDate] = useState(() => localStorage.getItem('birthDate') || '');
   const [showSettings, setShowSettings] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
 
   const saveBirthDate = (date: string) => {
     setBirthDate(date);
@@ -136,37 +135,30 @@ function App() {
   return (
     <div className="h-screen w-full flex flex-col items-center justify-center p-8 bg-white text-black relative">
       {/* Settings Icon (Top Right, Subtle) */}
-      {!isFocused && (
-        <button 
-          onClick={() => setShowSettings(true)}
-          className="absolute top-8 right-8 p-4 opacity-20 hover:opacity-100 transition-opacity"
-        >
-          <Settings className="w-6 h-6" />
-        </button>
-      )}
+      <button 
+        onClick={() => setShowSettings(true)}
+        className="absolute top-8 right-8 p-4 opacity-20 hover:opacity-100 transition-opacity"
+      >
+        <Settings className="w-6 h-6" />
+      </button>
 
-      <div className={`w-full max-w-4xl px-4 transition-all duration-0 ${isFocused ? '-translate-y-24' : ''}`}>
-        {!isFocused && (
-          <div className="text-center space-y-2 md:space-y-4 mb-8 md:mb-12">
-            <h1 className="text-4xl md:text-8xl font-black tracking-tighter uppercase italic leading-none whitespace-nowrap">Time Leap Cal</h1>
-            <p className="text-[10px] md:text-sm tracking-[0.3em] md:tracking-[0.8em] uppercase opacity-30 font-medium whitespace-nowrap">Chronological Transition System</p>
-          </div>
-        )}
+      <div className="w-full max-w-4xl px-4 space-y-6 md:space-y-12">
+        <div className="text-center space-y-2 md:space-y-4">
+          <h1 className="text-4xl md:text-8xl font-black tracking-tighter uppercase italic leading-none whitespace-nowrap">Time Leap Cal</h1>
+          <p className="text-[10px] md:text-sm tracking-[0.3em] md:tracking-[0.8em] uppercase opacity-30 font-medium whitespace-nowrap">Chronological Transition System</p>
+        </div>
 
         <form onSubmit={handleSearch} className="space-y-16 md:space-y-24">
           <div className="space-y-6 md:space-y-12">
             <div className="relative">
               <input 
-                type="number"
+                type="search"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onFocus={() => setIsFocused(true)}
-                onBlur={() => setIsFocused(false)}
+                onChange={(e) => setInputValue(e.target.value.replace(/[^0-9]/g, ''))}
                 placeholder={getPlaceholder()}
                 className="w-full px-0 py-6 md:py-12 bg-transparent border-none text-7xl md:text-[12rem] font-black placeholder:text-gray-100 focus:outline-none text-center"
-                autoFocus
               />
               <div className="absolute -bottom-12 md:-bottom-20 left-0 right-0 flex flex-row justify-center gap-4 md:gap-12">
                 {(['西暦', '明治', '大正', '昭和', '平成', '令和'] as EraType[]).map(era => (
@@ -187,7 +179,7 @@ function App() {
             </div>
           </div>
 
-          <div className="pt-8">
+          <div className="pt-8 hidden md:block">
             <button 
               type="submit"
               disabled={!isSubmitEnabled}
@@ -196,6 +188,9 @@ function App() {
               Leap
             </button>
           </div>
+          
+          {/* iOS/Android keyboard usually shows "Search" or "Go" for type="search" within a form */}
+          <input type="submit" className="hidden" />
         </form>
       </div>
 
