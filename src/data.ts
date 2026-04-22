@@ -151,7 +151,7 @@ export const getLifeStage = (birthDateStr: string | null, targetYear: number) =>
   } else if (diff >= 19 && diff <= 22) {
     stage = `大学${diff - 18}年生・専門学生`;
   } else {
-    stage = `社会人${diff - 22}年目`;
+    stage = '';
   }
   
   return {

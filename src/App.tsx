@@ -180,7 +180,7 @@ function App() {
     return (
       <div className="min-h-screen bg-white text-black relative">
         {/* Top 2/3: Image Background */}
-        <div className="h-[66vh] relative overflow-hidden flex items-center justify-center border-b border-black bg-[#f0f0f0]">
+        <div className="h-screen relative overflow-hidden flex items-center justify-center border-b border-black bg-[#f0f0f0]">
           {backgroundImageUrl && (
             <img 
               src={backgroundImageUrl} 
@@ -196,12 +196,20 @@ function App() {
           
           <div className="absolute bottom-6 right-8 text-[10px] font-bold uppercase tracking-[0.2em] opacity-20 hover:opacity-100 transition-opacity flex items-center gap-2 pointer-events-none select-none">
             <div className="w-4 h-px bg-black opacity-20"></div>
-            Wikimedia Commons
+            画像提供: Wikimedia Commons
           </div>
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-24 px-4 text-center">
-            <h1 className="text-8xl md:text-[10rem] font-black tracking-tighter leading-none">{activeYear}</h1>
-            <div className="w-px h-24 md:h-64 bg-black hidden md:block"></div>
-            <h1 className="text-6xl md:text-9xl font-bold tracking-tight leading-none">{eraText}</h1>
+          <div className="relative z-10 w-full max-w-4xl px-4 py-8 flex flex-col items-center">
+            {/* Dummy spacer to match search screen header height */}
+            <div className="invisible mb-12 md:mb-16">
+              <h1 className="text-4xl md:text-6xl font-black">Time Leap Cal</h1>
+              <p className="text-[10px] md:text-xs tracking-[0.3em] md:tracking-[0.6em]">Chronological Transition System</p>
+            </div>
+            
+            <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-24 w-full">
+              <h1 className="text-7xl md:text-9xl font-black text-center py-6 md:py-8">{activeYear}</h1>
+              <div className="w-px h-12 md:h-64 bg-black/20 hidden md:block"></div>
+              <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-center opacity-40">{eraText}</h1>
+            </div>
           </div>
           
           <button 
@@ -224,7 +232,7 @@ function App() {
           <div className="max-w-4xl mx-auto space-y-12">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
               <div>
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border-b border-black pb-2 opacity-40">Main Events</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border-b border-black pb-2 opacity-40">主な出来事</h3>
                 <ul className="space-y-4">
                   {yearData.events.map((e, i) => (
                     <li key={i} className="text-lg md:text-xl font-bold leading-tight border-l-4 border-black pl-4">{e}</li>
@@ -233,23 +241,23 @@ function App() {
               </div>
               <div className="space-y-8 md:space-y-12">
                 <div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3 border-b border-black pb-2 opacity-40">Buzzword</h3>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3 border-b border-black pb-2 opacity-40">流行語</h3>
                   <p className="text-2xl md:text-3xl font-black uppercase tracking-tighter">{yearData.buzzwords[0]}</p>
                 </div>
                 <div>
-                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3 border-b border-black pb-2 opacity-40">Top Hit</h3>
+                  <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-3 border-b border-black pb-2 opacity-40">ヒット曲</h3>
                   <p className="text-2xl md:text-3xl font-black uppercase tracking-tighter">{yearData.songs[0]}</p>
                 </div>
               </div>
             </div>
 
             <div className="pt-6 border-t border-black/5">
-              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border-b border-black pb-2 opacity-40">Your Timeline</h3>
+              <h3 className="text-[10px] font-bold uppercase tracking-[0.3em] mb-4 border-b border-black pb-2 opacity-40">あなたの歴史</h3>
               {lifeStage ? (
                 <div className="flex items-baseline gap-4">
                   <span className="text-7xl font-black">{lifeStage.age}</span>
                   <div>
-                    <div className="text-xl font-bold uppercase tracking-widest">Years Old</div>
+                    <div className="text-xl font-bold uppercase tracking-widest">歳</div>
                     <div className="text-sm font-medium opacity-60 uppercase">{lifeStage.stage}</div>
                   </div>
                 </div>
@@ -258,7 +266,7 @@ function App() {
                   onClick={() => setShowSettings(true)}
                   className="text-xs font-bold uppercase tracking-widest border border-black/10 px-6 py-4 hover:bg-black hover:text-white transition-colors opacity-40 hover:opacity-100"
                 >
-                  Set Birth Date
+                  誕生年を設定
                 </button>
               )}
             </div>
@@ -331,7 +339,7 @@ function App() {
               disabled={!isSubmitEnabled}
               className={`w-full py-8 md:py-10 text-xs md:text-lg font-black uppercase tracking-[1em] ${isSubmitEnabled ? 'bg-black text-white cursor-pointer' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
             >
-              Time Leap
+              タイムリープ
             </button>
           </div>
           
@@ -344,8 +352,8 @@ function App() {
       {showSettings && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white p-12 max-w-md w-full border border-black">
-            <h2 className="text-2xl font-black uppercase tracking-tighter mb-4">Set Origin</h2>
-            <p className="text-xs font-medium mb-12 opacity-60 uppercase tracking-widest">Define your birth coordinates.</p>
+            <h2 className="text-2xl font-black uppercase tracking-tighter mb-4">設定</h2>
+            <p className="text-xs font-medium mb-12 opacity-60 uppercase tracking-widest">あなたの生まれた年を設定してください。</p>
             
             <input 
               type="date" 
@@ -359,13 +367,13 @@ function App() {
                 onClick={() => saveBirthDate(birthDate)}
                 className="w-full py-6 bg-black text-white text-sm font-black uppercase tracking-[0.2em] hover:bg-gray-800"
               >
-                Save
+                保存
               </button>
               <button 
                 onClick={() => setShowSettings(false)}
                 className="w-full py-4 text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 hover:opacity-100"
               >
-                Cancel
+                キャンセル
               </button>
             </div>
           </div>
