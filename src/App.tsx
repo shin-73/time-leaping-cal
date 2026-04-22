@@ -176,7 +176,7 @@ function App() {
 
     return (
       <div className="min-h-screen bg-white text-black relative">
-        <div className="h-[60vh] relative overflow-hidden flex items-center justify-center border-b border-black bg-[#f0f0f0]">
+        <div className="h-screen relative overflow-hidden flex flex-col items-center justify-center border-b border-black bg-[#f0f0f0]">
           {backgroundImageUrl && (
             <img
               src={backgroundImageUrl}
@@ -187,10 +187,21 @@ function App() {
             />
           )}
           <div className="absolute inset-0 bg-white/30 z-[5]"></div>
-          <div className="relative z-10 w-full text-center px-4">
-            <h1 className="text-8xl md:text-[10rem] font-black leading-none mb-4">{activeYear}</h1>
-            <h2 className="text-3xl md:text-5xl font-bold opacity-40">{eraText}</h2>
+          
+          {/* Synchronized Layout to match Home */}
+          <div className="relative z-10 w-full max-w-4xl px-4 py-2 space-y-4 text-center">
+            {/* Transparent placeholders to maintain vertical position */}
+            <div className="opacity-0 pointer-events-none">
+              <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase italic leading-none">Time Leap Cal</h1>
+              <p className="text-[10px] tracking-[0.6em] uppercase font-medium mt-4">Chronological Transition System</p>
+            </div>
+            
+            <div className="space-y-4 md:space-y-8">
+              <h1 className="text-7xl md:text-[10rem] font-black leading-none">{activeYear}</h1>
+              <h2 className="text-3xl md:text-5xl font-bold opacity-40">{eraText}</h2>
+            </div>
           </div>
+
           <button
             onClick={() => {
               setActiveYear(null);
@@ -199,7 +210,7 @@ function App() {
               url.search = '';
               window.history.pushState({}, '', url);
             }}
-            className="absolute top-8 left-8 p-4 hover:bg-gray-100 bg-white/50 backdrop-blur-sm z-50 rounded-full"
+            className="absolute top-4 left-4 p-4 hover:bg-gray-100 bg-white/50 backdrop-blur-sm z-50 rounded-full"
           >
             <ChevronLeft className="w-8 h-8" />
           </button>
