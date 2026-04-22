@@ -133,7 +133,7 @@ function App() {
   }
 
   return (
-    <div className="h-screen w-full flex flex-col items-center justify-center p-8 bg-white text-black relative">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-8 bg-white text-black relative md:overflow-hidden">
       {/* Settings Icon (Top Right, Subtle) */}
       <button 
         onClick={() => setShowSettings(true)}
@@ -142,25 +142,30 @@ function App() {
         <Settings className="w-6 h-6" />
       </button>
 
-      <div className="w-full max-w-4xl px-4 space-y-6 md:space-y-12">
+      <div className="w-full max-w-4xl px-4 py-8 space-y-6 md:space-y-8">
         <div className="text-center space-y-2 md:space-y-4">
-          <h1 className="text-4xl md:text-8xl font-black tracking-tighter uppercase italic leading-none whitespace-nowrap">Time Leap Cal</h1>
-          <p className="text-[10px] md:text-sm tracking-[0.3em] md:tracking-[0.8em] uppercase opacity-30 font-medium whitespace-nowrap">Chronological Transition System</p>
+          <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic leading-none whitespace-nowrap">Time Leap Cal</h1>
+          <p className="text-[10px] md:text-xs tracking-[0.3em] md:tracking-[0.6em] uppercase opacity-30 font-medium whitespace-nowrap">Chronological Transition System</p>
         </div>
 
-        <form onSubmit={handleSearch} className="space-y-16 md:space-y-24">
-          <div className="space-y-6 md:space-y-12">
+        <form onSubmit={handleSearch} className="space-y-12 md:space-y-16">
+          <div className="space-y-6 md:space-y-10">
             <div className="relative">
               <input 
-                type="search"
+                type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value.replace(/[^0-9]/g, ''))}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearch();
+                  }
+                }}
                 placeholder={getPlaceholder()}
-                className="w-full px-0 py-6 md:py-12 bg-transparent border-none text-7xl md:text-[12rem] font-black placeholder:text-gray-100 focus:outline-none text-center"
+                className="w-full px-0 py-6 md:py-8 bg-transparent border-none text-7xl md:text-9xl font-black placeholder:text-gray-100 focus:outline-none text-center"
               />
-              <div className="absolute -bottom-12 md:-bottom-20 left-0 right-0 flex flex-row justify-center gap-4 md:gap-12">
+              <div className="absolute -bottom-12 md:-bottom-16 left-0 right-0 flex flex-row justify-center gap-4 md:gap-8">
                 {(['西暦', '明治', '大正', '昭和', '平成', '令和'] as EraType[]).map(era => (
                   <label key={era} className="flex-shrink-0 flex items-center cursor-pointer">
                     <input 
@@ -170,7 +175,7 @@ function App() {
                       onChange={() => setSelectedEra(era)}
                       className="sr-only"
                     />
-                    <span className={`px-2 md:px-8 py-2 md:py-4 text-xs md:text-2xl font-bold border-2 transition-colors whitespace-nowrap ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
+                    <span className={`px-2 md:px-6 py-2 md:py-3 text-xs md:text-lg font-bold border-2 transition-colors whitespace-nowrap ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-400 hover:text-black'}`}>
                       {era}
                     </span>
                   </label>
@@ -183,7 +188,7 @@ function App() {
             <button 
               type="submit"
               disabled={!isSubmitEnabled}
-              className={`w-full py-8 md:py-12 text-xs md:text-xl font-black uppercase tracking-[1em] ${isSubmitEnabled ? 'bg-black text-white cursor-pointer' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+              className={`w-full py-8 md:py-10 text-xs md:text-lg font-black uppercase tracking-[1em] ${isSubmitEnabled ? 'bg-black text-white cursor-pointer' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
             >
               Leap
             </button>
