@@ -4,6 +4,14 @@ import { convertAdToJapaneseEra, getLifeStage } from './data';
 import type { EraType } from './data';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+const LOADING_MESSAGES = [
+  "アーカイブの深層へ遡っています...",
+  "断片的な記憶を繋ぎ合わせています...",
+  "当時の空気感を復元しています...",
+  "過去の囁きを慎重に拾い集めています...",
+  "時の重なりを紐解いています..."
+];
+
 function App() {
   const [inputValue, setInputValue] = useState('');
   const [activeYear, setActiveYear] = useState<number | null>(null);
@@ -14,6 +22,19 @@ function App() {
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [historicalText, setHistoricalText] = useState('');
   const [isTextLoading, setIsTextLoading] = useState(false);
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (isTextLoading) {
+      interval = setInterval(() => {
+        setLoadingMsgIdx(prev => (prev + 1) % LOADING_MESSAGES.length);
+      }, 3000);
+    } else {
+      setLoadingMsgIdx(0);
+    }
+    return () => clearInterval(interval);
+  }, [isTextLoading]);
 
   // Scroll to top on page transition
   useEffect(() => {
@@ -162,8 +183,8 @@ ${selectedText.substring(0, 3000)}
         
         {/* Credit Display */}
         {activeYear && (
-          <div className="absolute bottom-6 right-8 text-[10px] font-bold tracking-widest opacity-30 z-50 text-black">
-            Text: Wikipedia / CC BY-SA
+          <div className="absolute bottom-6 right-8 text-[10px] font-bold tracking-widest opacity-30 z-50 text-black uppercase">
+            Source: Wikipedia / CC BY-SA
           </div>
         )}
 
@@ -183,7 +204,7 @@ ${selectedText.substring(0, 3000)}
               url.search = '';
               window.history.pushState({}, '', url);
             }}
-            className="absolute top-4 left-4 p-4 hover:bg-gray-100 bg-white/50 backdrop-blur-sm z-50 rounded-full"
+            className="absolute top-4 left-4 p-4 hover:bg-gray-100 bg-white/50 backdrop-blur-sm z-50"
           >
             <ChevronLeft className="w-8 h-8" />
           </button>
@@ -284,38 +305,56 @@ ${selectedText.substring(0, 3000)}
       {/* Results Detail Section */}
       {activeYear && (
         <div className="py-16 md:py-32 px-8 bg-white">
-          <div className="max-w-2xl mx-auto space-y-16">
+          <div className="max-w-2xl mx-auto">
             {isTextLoading ? (
-              <p className="text-2xl font-medium text-black leading-relaxed tracking-wide opacity-30 animate-pulse text-justify">
-                歴史の断片を集めています...
+              <p key={loadingMsgIdx} className="text-2xl font-medium text-black leading-relaxed tracking-wide opacity-30 animate-breathe text-justify">
+                {LOADING_MESSAGES[loadingMsgIdx]}
               </p>
             ) : (
-              <p className="text-2xl font-medium text-black leading-relaxed tracking-wide text-justify">
-                {historicalText}
-              </p>
-            )}
+              <div className="text-2xl font-medium text-black leading-relaxed tracking-wide text-justify">
+                {(() => {
+                  // 歴史テキストを行に分割
+                  const lines = historicalText.split('。').filter(s => s.trim() !== '').map(s => `${s.trim()}。`);
 
-            {(() => {
-              const lifeStage = getLifeStage(birthDate, activeYear);
-              return (
-                <div className="flex items-baseline gap-10">
-                  {lifeStage ? (
-                    lifeStage.age >= 0 ? (
-                      <div className="flex items-baseline gap-8">
-                        <span className="text-2xl font-medium text-black">{lifeStage.age}歳</span>
-                        <span className="text-2xl font-medium text-black">{lifeStage.stage}</span>
-                      </div>
-                    ) : (
-                      <span className="text-2xl font-medium text-black">{lifeStage.stage}</span>
-                    )
-                  ) : (
-                    <button onClick={() => setShowSettings(true)} className="text-2xl font-medium text-black hover:opacity-50 transition-opacity">
-                      誕生日を設定する
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
+                  // 個人の歴史テキストを計算
+                  const lifeStage = getLifeStage(birthDate, activeYear);
+                  if (lifeStage) {
+                    let personalNarrative = '';
+                    if (lifeStage.age < 0) {
+                      personalNarrative = `あなたが生まれる${Math.abs(lifeStage.age)}年前のことです。`;
+                    } else if (lifeStage.age === 0) {
+                      personalNarrative = `この年、あなたは誕生しました。`;
+                    } else {
+                      if (!lifeStage.stage) {
+                        personalNarrative = `このときあなたは${lifeStage.age}歳でした。`;
+                      } else {
+                        personalNarrative = `このときあなたは${lifeStage.age}歳（${lifeStage.stage}）でした。`;
+                      }
+                    }
+                    if (personalNarrative) {
+                      lines.push(personalNarrative);
+                    }
+                  }
+
+                  // 統合した配列を描画
+                  return (
+                    <>
+                      {lines.map((sentence, idx) => (
+                        <span key={idx} className="block mb-6">{sentence}</span>
+                      ))}
+                      
+                      {!lifeStage && (
+                        <span className="block mt-24 text-center">
+                          <button onClick={() => setShowSettings(true)} className="hover:opacity-50 transition-opacity">
+                            誕生日を設定する
+                          </button>
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         </div>
       )}
