@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronLeft, Settings } from 'lucide-react';
 import { convertAdToJapaneseEra, getLifeStage } from './data';
 import type { EraType } from './data';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 function App() {
   const [inputValue, setInputValue] = useState('');
@@ -11,97 +12,16 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   const [isImageLoading, setIsImageLoading] = useState(false);
-
-  // Historical Knowledge Base (Dynamic Generation by Year)
-  const getHistoricalSnapshot = (year: number) => {
-    // Basic Era Logic with Year-Specific Variations
-    if (year < 1912) { // Meiji
-      const item = year % 2 === 0 ? "文明開化の「牛鍋」" : "モダンな「アンパン」";
-      return {
-        scene: `${year}年、明治の空気が色濃く残る街角。人力車と路面電車が並走し、瓦屋根の向こうにレンガ造りの洋館が建ち並ぶ、和洋が混ざり合う熱気の中。`,
-        memory: `アンパン1個が約1銭。${item}が流行し、新しい時代を誰もが五感で味わっていました。`,
-        event: `${year}年、近代国家としての基盤を固めるための様々な挑戦が、日本中で続けられていました。`
-      };
-    }
-    if (year < 1926) { // Taisho
-      return {
-        scene: `${year}年。カフェから流れる蓄音機の調べ。モダンガールが銀座を闊歩し、自由とロマンが街の空気に溶け込んでいた華やかな黄昏時です。`,
-        memory: `カレーライスが1杯7銭。百貨店の上層階で楽しむ「お子様ランチ」が、子供たちの憧れの象徴でした。`,
-        event: "大正デモクラシーの波が広まり、民主主義と自由な文化が花開きました。"
-      };
-    }
-    if (year < 1945) { // Early Showa / War
-      return {
-        scene: `${year}年。ラジオから流れる慎ましい放送。質素な暮らしの中にあっても、人々は明日の平和と家族の安寧を静かに祈っていた時代です。`,
-        memory: `配給制による制限がある中で、手作りの温もりが何よりも尊ばれていた厳しい冬の時代です。`,
-        event: "歴史の荒波の中で、人々の忍耐と希望が試されていた重大な時期にあたります。"
-      };
-    }
-    if (year < 1970) { // Post-war Recovery / Rapid Growth
-      const price = Math.floor(year / 10) * 10 - 1930;
-      return {
-        scene: `${year}年、焼け跡から立ち上がった街並み。至る所で工事の槌音が響き、空には高度経済成長を象徴する白い雲がどこまでも広がっています。`,
-        memory: `コロッケ1個が約${price}円。白黒テレビの前に近所中が集まり、新しい時代の到来を共に祝っていました。`,
-        event: "日本が世界にその復活を印象づけ、驚異的な成長を成し遂げた誇らしい時期です。"
-      };
-    }
-    if (year < 1980) { // 70s
-      return {
-        scene: `${year}年。ベルボトムのジーンズに身を包んだ若者たち。フォークソングの調べが街角の喫茶店から流れ、多様な価値観が芽生え始めた夕暮れ時。`,
-        memory: `コーヒー1杯が約200円。「カップヌードル」の登場が、日本の食文化に革命を起こしていました。`,
-        event: "オイルショック後の社会不安を乗り越え、より豊かな生活を求めて人々が模索した時代です。"
-      };
-    }
-    if (year < 1990) { // 80s / Bubble
-      const item = year === 1983 ? "ファミリーコンピュータ" : "ウォークマン";
-      return {
-        scene: `${year}年、ネオン瞬く真夜中の都会。ハイブランドを身に纏った人々が、タクシーを求めて華やかな夜の街へと消えていく熱狂の風景です。`,
-        memory: `缶ジュース100円。誰もが「${item}」を手にし、新しい遊びの形に夢中になっていました。`,
-        event: "日本経済が絶頂期を迎え、世界中の富と文化がこの国に集中した夢のような時代です。"
-      };
-    }
-    if (year < 2000) { // 90s
-      if (year === 1993) {
-        return {
-          scene: "1993年、Jリーグの開幕に日本中が沸いた年。渋谷の街にはルーズソックスの高校生が溢れ、ポケベルの数字でメッセージを伝え合う新しい文化の萌芽がありました。",
-          memory: "ドーナツ化現象が語られ、ナタ・デ・ココが流行。誰もが「Windows 3.1」という新しい窓を開こうとしていました。",
-          event: "細川連立政権の誕生など、政治の世界でも戦後最大の転換期を迎えていました。"
-        };
-      }
-      return {
-        scene: `${year}年、PHSを片手に歩く若者たち。ミリオンセラーのCDが次々と生まれ、音楽が街の一部となっていたノスタルジックなデジタル前夜。`,
-        memory: `マクドナルドのハンバーガーが130円。女子高生たちが「たまごっち」の育成に一喜一憂していました。`,
-        event: "バブル崩壊後の困難な状況下で、新しい文化や価値観が力強く育まれた時期です。"
-      };
-    }
-    if (year < 2010) { // 2000s
-      if (year === 2003) {
-        return {
-          scene: "2003年、iモード全盛期の駅のホーム。パカパカと開く二つ折り携帯の画面を見つめ、デコメールで自分の世界を表現していたデジタル・ネイティブの黎明。 ",
-          memory: "アザラシのタマちゃんが話題となり、六本木ヒルズがオープン。街には「世界に一つだけの花」が流れていました。",
-          event: "イラクへの自衛隊派遣など、日本の平和と国際貢献のあり方が改めて問われた年です。"
-        };
-      }
-      return {
-        scene: `${year}年。iモードの着信音が響く中、人々はブログという新しい広場で自分の言葉を綴り始めた、繋がりの多様化が始まった時代です。`,
-        memory: `牛丼1杯380円。誰もが「iPod」に数千曲を詰め込み、音楽を自由に持ち歩く楽しさを知りました。`,
-        event: "アナログからデジタルへ、生活の基盤が劇的に変化し、情報の速度が加速した過渡期です。"
-      };
-    }
-    return { // 2010s - Present
-      scene: `${year}年、ワイヤレスイヤホンで世界と繋がり、スマホを片手に静かな街を歩く。SNSを通じて瞬時に世界と共有する、透明で加速した時代の空気感。`,
-      memory: `サブスクリプション。所有することよりも、体験を共有することに価値を見出す新しいライフスタイルが定着しました。`,
-      event: "テクノロジーによる進化と、持続可能な未来への模索が日本中で続けられています。"
-    };
-  };
+  const [historicalText, setHistoricalText] = useState('');
+  const [isTextLoading, setIsTextLoading] = useState(false);
 
   // Scroll to top on page transition
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, [activeYear]);
 
   // URL Persistence and Back Button Support
-  React.useEffect(() => {
+  useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
       const year = params.get('year');
@@ -116,6 +36,60 @@ function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  const fetchHistoricalNarrative = async (year: number) => {
+    setIsTextLoading(true);
+    setHistoricalText('');
+    
+    try {
+      // Fetch data from Wikipedia
+      const wikiRes = await fetch(`https://ja.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=${year}年&format=json&origin=*`);
+      const wikiData = await wikiRes.json();
+      const pages = wikiData.query.pages;
+      const pageId = Object.keys(pages)[0];
+      
+      let wikiText = "";
+      if (pageId !== "-1") {
+        wikiText = pages[pageId].extract;
+      }
+
+      if (!wikiText) {
+        setHistoricalText(`${year}年。過ぎ去った時間の中に、数え切れない人々の営みが静かに刻まれています。`);
+        setIsTextLoading(false);
+        return;
+      }
+
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        setHistoricalText("※ VITE_GEMINI_API_KEY が設定されていないため、物語を生成できませんでした。");
+        setIsTextLoading(false);
+        return;
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+      
+      // Select random chunks if text is too long to add more randomness
+      const textChunks = wikiText.split('。').filter(s => s.length > 5);
+      const shuffled = [...textChunks].sort(() => 0.5 - Math.random());
+      const selectedText = shuffled.slice(0, 20).join('。') + '。';
+
+      const prompt = `あなたは歴史の語り部です。以下のWikipediaから抽出された${year}年の出来事などのテキスト素材を元に、150〜200文字程度の客観的かつ情景を感じさせる情緒的なひと続きの文章を作成してください。
+箇条書き、事務的なリスト、そして「時代の情景」「暮らしの記憶」「主な出来事」「あなたの歴史」などの見出し（ラベル）は【絶対に】出力しないでください。プレーンなテキストのみで、訪れるたびに異なる断片に出会えるような自然なパラグラフに再構成してください。
+
+素材:
+${selectedText.substring(0, 3000)}
+`;
+      
+      const result = await model.generateContent(prompt);
+      setHistoricalText(result.response.text());
+    } catch (error) {
+      console.error("Error generating narrative:", error);
+      setHistoricalText("歴史の記憶を読み解くことができませんでした。");
+    } finally {
+      setIsTextLoading(false);
+    }
+  };
 
   const handleSearch = (e?: React.FormEvent, overrideValue?: string) => {
     if (e) e.preventDefault();
@@ -159,6 +133,7 @@ function App() {
       };
 
       fetchImage();
+      fetchHistoricalNarrative(targetYear);
       setActiveYear(targetYear);
 
       const url = new URL(window.location.href);
@@ -184,6 +159,13 @@ function App() {
           />
         )}
         {activeYear && <div className="absolute inset-0 bg-white/30 z-[5]"></div>}
+        
+        {/* Credit Display */}
+        {activeYear && (
+          <div className="absolute bottom-6 right-8 text-[10px] font-bold tracking-widest opacity-30 z-50 text-black">
+            Text: Wikipedia / CC BY-SA
+          </div>
+        )}
 
         <button 
           onClick={() => setShowSettings(true)} 
@@ -253,7 +235,7 @@ function App() {
                         return currentYear.toString();
                       })()
                     } 
-                    className={`w-full bg-transparent border-none text-7xl md:text-[10rem] font-black placeholder:text-gray-200 focus:outline-none text-center leading-none p-0 m-0 ${activeYear ? 'cursor-default' : ''}`} 
+                    className={`w-full bg-transparent border-none text-7xl md:text-[10rem] font-black placeholder:text-gray-200 focus:outline-none text-center leading-none p-0 m-0 tabular-nums ${activeYear ? 'cursor-default' : ''}`} 
                   />
                   {/* Hidden submit button to ensure mobile keyboards show "Go/Search" */}
                   <button type="submit" className="hidden" aria-hidden="true" />
@@ -301,55 +283,37 @@ function App() {
 
       {/* Results Detail Section */}
       {activeYear && (
-        <div className="py-16 md:py-24 px-8 bg-white">
+        <div className="py-16 md:py-32 px-8 bg-white">
           <div className="max-w-2xl mx-auto space-y-16">
+            {isTextLoading ? (
+              <p className="text-2xl font-medium text-black leading-relaxed tracking-wide opacity-30 animate-pulse text-justify">
+                歴史の断片を集めています...
+              </p>
+            ) : (
+              <p className="text-2xl font-medium text-black leading-relaxed tracking-wide text-justify">
+                {historicalText}
+              </p>
+            )}
+
             {(() => {
-              const snapshot = getHistoricalSnapshot(activeYear);
               const lifeStage = getLifeStage(birthDate, activeYear);
               return (
-                <>
-                  <div className="space-y-2">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.6em] opacity-40">時代の情景</h3>
-                    <p className="text-2xl md:text-3xl font-medium leading-relaxed [transform:scaleX(0.95)] origin-left">
-                      {snapshot.scene}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.6em] opacity-40">暮らしの記憶</h3>
-                    <p className="text-xl md:text-2xl font-medium leading-relaxed opacity-70">
-                      {snapshot.memory}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.6em] opacity-40">主な出来事</h3>
-                    <p className="text-xl md:text-2xl font-medium leading-relaxed opacity-70">
-                      {snapshot.event}
-                    </p>
-                  </div>
-
-                  <div className="pt-20 border-t border-black/5">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.6em] mb-12 opacity-40">あなたの歴史</h3>
-                    {lifeStage ? (
-                      <div className="flex items-baseline gap-10">
-                        {lifeStage.age >= 0 ? (
-                          <>
-                            <span className="text-8xl md:text-9xl font-black leading-none">{lifeStage.age}</span>
-                            <div className="pb-4">
-                              <div className="text-3xl font-black">歳</div>
-                              <div className="text-[10px] font-bold opacity-30 uppercase tracking-[0.3em] mt-3">{lifeStage.stage}</div>
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-5xl md:text-7xl font-black uppercase tracking-tighter italic opacity-10 py-8">{lifeStage.stage}</div>
-                        )}
+                <div className="flex items-baseline gap-10">
+                  {lifeStage ? (
+                    lifeStage.age >= 0 ? (
+                      <div className="flex items-baseline gap-8">
+                        <span className="text-2xl font-medium text-black">{lifeStage.age}歳</span>
+                        <span className="text-2xl font-medium text-black">{lifeStage.stage}</span>
                       </div>
                     ) : (
-                      <button onClick={() => setShowSettings(true)} className="text-[10px] font-black uppercase tracking-[0.4em] border border-black/20 px-12 py-6 hover:bg-black hover:text-white transition-all opacity-30 hover:opacity-100">誕生日を設定する</button>
-                    )}
-                  </div>
-                </>
+                      <span className="text-2xl font-medium text-black">{lifeStage.stage}</span>
+                    )
+                  ) : (
+                    <button onClick={() => setShowSettings(true)} className="text-2xl font-medium text-black hover:opacity-50 transition-opacity">
+                      誕生日を設定する
+                    </button>
+                  )}
+                </div>
               );
             })()}
           </div>
