@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Settings, HelpCircle } from 'lucide-react';
 import { convertAdToJapaneseEra, getLifeStage } from './data';
 import type { EraType } from './data';
@@ -32,6 +32,7 @@ function App() {
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const narrativeCache = useRef<Record<number, string>>({});
 
   useEffect(() => {
     const hasVisited = localStorage.getItem('onboardingCompleted');
@@ -75,6 +76,11 @@ function App() {
   }, []);
 
   const fetchHistoricalNarrative = async (year: number) => {
+    if (narrativeCache.current[year]) {
+      setHistoricalText(narrativeCache.current[year]);
+      return;
+    }
+
     setIsTextLoading(true);
     setHistoricalText('');
 
@@ -109,6 +115,9 @@ function App() {
       })();
 
       const narrative = await Promise.race([aiPromise, timeoutPromise]);
+      if (narrative && narrative.trim().length > 0) {
+        narrativeCache.current[year] = narrative;
+      }
       setHistoricalText(narrative);
     } catch (error: any) {
       console.error("========== API ERROR DETAILS ==========");
@@ -126,6 +135,7 @@ function App() {
 
   const handleSearch = (e?: React.FormEvent, overrideValue?: string) => {
     if (e) e.preventDefault();
+    if (isTextLoading) return; // 多重送信ガード
     const val = overrideValue ?? inputValue;
     const isEnabled = selectedEra === '西暦' ? val.length === 4 : val.length >= 1;
     if (!isEnabled) return;
