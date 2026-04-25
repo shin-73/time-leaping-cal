@@ -14,6 +14,7 @@
 
 html {
   overflow-y: scroll;
+  scrollbar-gutter: stable;
   overflow-x: hidden;
 }
 
@@ -22,7 +23,7 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   min-width: 320px;
   min-height: 100vh;
   font-family: var(--font-sans);
@@ -37,7 +38,7 @@ body {
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   flex: 1;
 }
 
@@ -45,8 +46,15 @@ body {
 * {
   border-radius: 0 !important;
   box-shadow: none !important;
-  transition: none !important;
-  animation: none !important;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0; }
+  25%, 75% { opacity: 1; }
+}
+
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
 }
 
 /* Custom Scrollbar for a clean look */
