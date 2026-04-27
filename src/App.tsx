@@ -491,7 +491,7 @@ function App() {
             {/* Header Area - Fixed height to guarantee absolute stability */}
             <div className="h-[100px] md:h-[140px] flex flex-col justify-center mb-4 md:mb-8">
               <div className={`transition-opacity duration-500 ${activeYear ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase italic leading-none font-serif">
+                <h1 className="text-4xl md:text-7xl font-bold tracking-tighter uppercase italic leading-none font-serif">
                   <span>Time</span>
                   <span className="ml-[1px]"> Leap Cal</span>
                 </h1>
@@ -586,7 +586,7 @@ function App() {
                           type="submit" 
                           disabled={!isSubmitEnabled} 
                           onClick={(e) => handleSearch(e)}
-                          className={`w-full py-10 text-lg font-black uppercase tracking-[1em] relative z-30 transition-all ${isSubmitEnabled ? 'bg-black text-white cursor-pointer hover:bg-gray-900' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+                          className={`w-full py-10 text-lg font-bold uppercase tracking-[1em] relative z-30 transition-all ${isSubmitEnabled ? 'bg-black text-white cursor-pointer hover:bg-gray-900' : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
                         >
                           タイムリープ
                         </button>
@@ -642,7 +642,7 @@ function App() {
                 <ChevronLeft className="w-7 h-7" />
               </button>
             )}
-            <h2 className="text-2xl font-black uppercase mb-4">設定</h2>
+            <h2 className="text-2xl font-bold uppercase mb-4">設定</h2>
             <input 
               type="tel"
               inputMode="numeric"
@@ -674,7 +674,7 @@ function App() {
               setBirthDate(normalizedBirthDate);
               localStorage.setItem('birthDate', normalizedBirthDate);
               closePanel('settings');
-            }} className="w-full py-6 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-800">保存</button>
+            }} className="w-full py-6 bg-black text-white text-sm font-bold uppercase tracking-widest hover:bg-gray-800">保存</button>
             <button onClick={() => closePanel('settings')} className="w-full py-4 text-[10px] font-bold uppercase tracking-widest opacity-30 mt-4">キャンセル</button>
           </div>
         </div>
@@ -695,7 +695,7 @@ function App() {
             )}
             <div className="mt-8 sm:mt-0 mb-8">
               <h2 className="text-[10px] tracking-[0.5em] uppercase opacity-40 font-bold mb-2">Concept</h2>
-              <p className="text-3xl sm:text-4xl font-black leading-tight tracking-tighter">あなたと歴史が<br />重なる場所</p>
+              <p className="text-3xl sm:text-4xl font-bold leading-tight tracking-tighter">あなたと歴史が<br />重なる場所</p>
             </div>
             
             <div className="space-y-6 text-sm font-medium leading-relaxed text-gray-600 mb-12 max-w-md sm:mx-auto text-left">
@@ -710,7 +710,7 @@ function App() {
                 closePanel('help');
                 localStorage.setItem('onboardingCompleted', 'true');
               }} 
-              className="w-full py-6 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-900 transition-colors rounded-none"
+              className="w-full py-6 bg-black text-white text-sm font-bold uppercase tracking-widest hover:bg-gray-900 transition-colors rounded-none"
             >
               記憶の旅を始める
             </button>
