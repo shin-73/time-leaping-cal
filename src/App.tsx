@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, Settings, HelpCircle } from 'lucide-react';
 import { convertAdToJapaneseEra, getLifeStage } from './data';
 import type { EraType } from './data';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AGE_PHRASES, PROMPT_TEMPLATE, LOADING_MESSAGES } from './constants/aiConfig';
 
 const getTypingDelay = (char: string) => {
@@ -12,9 +13,7 @@ const getTypingDelay = (char: string) => {
 };
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const GEMINI_MODEL_CANDIDATES = ['gemini-1.5-flash', 'gemini-flash-latest'] as const;
 const REQUEST_TIMEOUT_MS = 60000;
-const MAX_ATTEMPTS_PER_MODEL = 2;
 
 const toNarrativeParagraphs = (text: string): string[] =>
   text
@@ -26,84 +25,6 @@ const toNarrativeParagraphs = (text: string): string[] =>
         .map((sentence) => sentence.trim())
         .filter(Boolean),
     );
-
-const isRetryableError = (error: unknown) => {
-  const parsedError = error as { name?: string; message?: string };
-  return (
-    parsedError?.name === 'AbortError' ||
-    parsedError?.name === 'TimeoutError' ||
-    parsedError?.message?.includes('Timeout') ||
-    parsedError?.message?.includes('NetworkError') ||
-    parsedError?.message?.includes('Failed to fetch')
-  );
-};
-
-const generateNarrativeByFetch = async (
-  apiKey: string,
-  modelName: string,
-  prompt: string,
-  timeoutMs: number,
-) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0,
-            topP: 0.1,
-            topK: 1,
-          },
-        }),
-        signal: controller.signal,
-      },
-    );
-
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const statusText =
-        payload?.error?.message ||
-        payload?.error?.status ||
-        `HTTP ${response.status}`;
-      const error = new Error(statusText);
-      (error as Error & { status?: number }).status = response.status;
-      throw error;
-    }
-
-    const candidate = payload?.candidates?.[0];
-    const parts = candidate?.content?.parts;
-    const text =
-      (Array.isArray(parts)
-        ? parts
-            .map((part: { text?: unknown }) => (typeof part?.text === 'string' ? part.text : ''))
-            .join('')
-            .trim()
-        : '') ||
-      '';
-
-    if (!text || typeof text !== 'string' || text.trim().length === 0) {
-      const finishReason = candidate?.finishReason || 'UNKNOWN';
-      const blockReason = payload?.promptFeedback?.blockReason || 'NONE';
-      throw new Error(`Empty narrative response (finishReason=${finishReason}, blockReason=${blockReason})`);
-    }
-
-    return text;
-  } catch (error: unknown) {
-    if ((error as { name?: string })?.name === 'AbortError') {
-      throw new Error('Timeout');
-    }
-    throw error;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-};
 
 const calculatePersonalNarrative = (birthDate: string, activeYear: number) => {
   const lifeStage = getLifeStage(birthDate, activeYear);
@@ -180,40 +101,44 @@ function App() {
     setLoadingMsgIdx(0);
     setDisplayedHistoricalText('');
 
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-    console.info('[Gemini Debug] key present:', !!apiKey, 'length:', apiKey?.length || 0, 'host:', window.location.host);
-    if (!apiKey) {
-      setHistoricalText("※ VITE_GEMINI_API_KEY が設定されていないため、物語を生成できませんでした。");
-      setIsNarrativeError(true);
-      setIsTextLoading(false);
-      return;
-    }
-
     const eraData = convertAdToJapaneseEra(year);
     const eraName = `${eraData.era}${eraData.eraYear === 1 ? '元' : eraData.eraYear}年`;
 
     try {
       const prompt = PROMPT_TEMPLATE(year, eraName);
       let narrative = '';
-      let lastError: unknown = null;
 
-      for (const modelName of GEMINI_MODEL_CANDIDATES) {
-        for (let attempt = 1; attempt <= MAX_ATTEMPTS_PER_MODEL; attempt += 1) {
-          try {
-            console.info(`[Gemini Debug] request model=${modelName} attempt=${attempt}`);
-            narrative = await generateNarrativeByFetch(apiKey, modelName, prompt, REQUEST_TIMEOUT_MS);
-            break;
-          } catch (error: unknown) {
-            lastError = error;
-            console.warn(`[Gemini Debug] failed model=${modelName} attempt=${attempt}`, error);
-            if (!isRetryableError(error) || attempt === MAX_ATTEMPTS_PER_MODEL) break;
-          }
+      if (import.meta.env.DEV) {
+        const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+        if (!apiKey) {
+          throw new Error('Missing VITE_GEMINI_API_KEY');
         }
-        if (narrative) break;
-      }
+        const genAI = new GoogleGenerativeAI(apiKey as string);
+        const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+        const timeoutPromise = new Promise<string>((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), REQUEST_TIMEOUT_MS),
+        );
+        const aiPromise = (async () => {
+          const result = await model.generateContent(prompt);
+          return result.response.text();
+        })();
+        narrative = await Promise.race([aiPromise, timeoutPromise]);
+      } else {
+        const response = await fetch('/api/generate-narrative', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prompt }),
+        });
 
-      if (!narrative) {
-        throw lastError || new Error('Narrative generation failed');
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const error = new Error(payload?.error || `HTTP ${response.status}`);
+          (error as Error & { status?: number }).status = response.status;
+          throw error;
+        }
+        narrative = payload?.text as string;
       }
 
       if (narrative && narrative.trim().length > 0) {
