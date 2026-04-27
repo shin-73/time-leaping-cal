@@ -1,6 +1,6 @@
 const GEMINI_MODELS = ['gemini-1.5-flash', 'gemini-flash-latest']
-const REQUEST_TIMEOUT_MS = 60000
-const MAX_ATTEMPTS_PER_MODEL = 2
+const REQUEST_TIMEOUT_MS = 25000
+const MAX_ATTEMPTS_PER_MODEL = 1
 
 const isRetryableError = (message) =>
   message.includes('Timeout') ||

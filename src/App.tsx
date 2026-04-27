@@ -14,7 +14,7 @@ const getTypingDelay = (char: string) => {
 const getLoadingTypingDelay = (char: string) => Math.floor(getTypingDelay(char) * 4);
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-const REQUEST_TIMEOUT_MS = 60000;
+const REQUEST_TIMEOUT_MS = 25000;
 const OVERLAY_OPACITY_MIN = 0.16;
 const OVERLAY_OPACITY_MAX = 0.52;
 const DEFAULT_OVERLAY_OPACITY = 0.32;
