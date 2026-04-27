@@ -77,9 +77,21 @@ const generateNarrativeByFetch = async (
       throw error;
     }
 
-    const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const candidate = payload?.candidates?.[0];
+    const parts = candidate?.content?.parts;
+    const text =
+      (Array.isArray(parts)
+        ? parts
+            .map((part: { text?: unknown }) => (typeof part?.text === 'string' ? part.text : ''))
+            .join('')
+            .trim()
+        : '') ||
+      '';
+
     if (!text || typeof text !== 'string' || text.trim().length === 0) {
-      throw new Error('Empty narrative response');
+      const finishReason = candidate?.finishReason || 'UNKNOWN';
+      const blockReason = payload?.promptFeedback?.blockReason || 'NONE';
+      throw new Error(`Empty narrative response (finishReason=${finishReason}, blockReason=${blockReason})`);
     }
 
     return text;
