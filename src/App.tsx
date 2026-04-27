@@ -5,6 +5,26 @@ import type { EraType } from './data';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AGE_PHRASES, PROMPT_TEMPLATE, LOADING_MESSAGES } from './constants/aiConfig';
 
+const getTypingDelay = (char: string) => {
+  if (char === '\n') return 220;
+  if ('。！？'.includes(char)) return 360;
+  if ('、,'.includes(char)) return 180;
+  return 26;
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const toNarrativeParagraphs = (text: string): string[] =>
+  text
+    .replace(/\r\n/g, '\n')
+    .split(/\n+/)
+    .flatMap((block) =>
+      block
+        .split(/(?<=[。！？])/)
+        .map((sentence) => sentence.trim())
+        .filter(Boolean),
+    );
+
 const calculatePersonalNarrative = (birthDate: string, activeYear: number) => {
   const lifeStage = getLifeStage(birthDate, activeYear);
   if (!lifeStage) return null;
@@ -28,18 +48,13 @@ function App() {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [historicalText, setHistoricalText] = useState('');
+  const [displayedHistoricalText, setDisplayedHistoricalText] = useState('');
+  const [isNarrativeError, setIsNarrativeError] = useState(false);
   const [isTextLoading, setIsTextLoading] = useState(false);
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboardingCompleted'));
   const [errorMsg, setErrorMsg] = useState('');
   const narrativeCache = useRef<Record<number, string>>({});
-
-  useEffect(() => {
-    const hasVisited = localStorage.getItem('onboardingCompleted');
-    if (!hasVisited) {
-      setShowOnboarding(true);
-    }
-  }, []);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -47,8 +62,6 @@ function App() {
       interval = setInterval(() => {
         setLoadingMsgIdx(prev => (prev + 1) % LOADING_MESSAGES.length);
       }, 3000);
-    } else {
-      setLoadingMsgIdx(0);
     }
     return () => clearInterval(interval);
   }, [isTextLoading]);
@@ -83,10 +96,14 @@ function App() {
 
     setIsTextLoading(true);
     setHistoricalText('');
+    setIsNarrativeError(false);
+    setLoadingMsgIdx(0);
+    setDisplayedHistoricalText('');
 
     const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       setHistoricalText("※ VITE_GEMINI_API_KEY が設定されていないため、物語を生成できませんでした。");
+      setIsNarrativeError(true);
       setIsTextLoading(false);
       return;
     }
@@ -99,8 +116,13 @@ function App() {
       const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY as string);
 
       // 2. モデル取得：現在のAPIキーで利用可能な最新のFlashモデルを使用
-      const model = genAI.getGenerativeModel({ 
-        model: "gemini-flash-latest" 
+      const model = genAI.getGenerativeModel({
+        model: "gemini-flash-latest",
+        generationConfig: {
+          temperature: 0,
+          topP: 0.1,
+          topK: 1,
+        },
       });
 
       const prompt = PROMPT_TEMPLATE(year, eraName);
@@ -119,22 +141,64 @@ function App() {
         narrativeCache.current[year] = narrative;
       }
       setHistoricalText(narrative);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const parsedError = error as { name?: string; status?: number | string; message?: string; toString?: () => string };
       console.error("========== API ERROR DETAILS ==========");
-      console.error("Error Type:", error?.name || "Unknown");
-      console.error("Status:", error?.status || "N/A");
-      console.error("Message:", error?.message || error?.toString());
+      console.error("Error Type:", parsedError?.name || "Unknown");
+      console.error("Status:", parsedError?.status || "N/A");
+      console.error("Message:", parsedError?.message || parsedError?.toString?.());
       console.error("Full Error Object:", error);
       console.error("=====================================");
-      setHistoricalText(`${year}年（${eraName}）の歴史的記憶にアクセスできませんでした。`);
+      setHistoricalText(`${year}年（${eraName}）の記憶にアクセスできませんでした。`);
+      setIsNarrativeError(true);
     } finally {
       setIsTextLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (isTextLoading || !historicalText) return;
 
-  const handleSearch = (e?: React.FormEvent, overrideValue?: string) => {
-    if (e) e.preventDefault();
+    const baseNarrativeText = historicalText.trim();
+    const personalNarrative =
+      !isNarrativeError && activeYear !== null
+        ? calculatePersonalNarrative(birthDate, activeYear)
+        : null;
+    const fullText = [baseNarrativeText, personalNarrative].filter(Boolean).join('\n\n');
+    const ageTextStartIndex = personalNarrative ? baseNarrativeText.length + 2 : Number.POSITIVE_INFINITY;
+    let cancelled = false;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const typeNarrative = async () => {
+      if (prefersReducedMotion) {
+        setDisplayedHistoricalText(fullText);
+        return;
+      }
+
+      setDisplayedHistoricalText('');
+
+      for (let idx = 0; idx < fullText.length; idx += 1) {
+        if (cancelled) break;
+        const char = fullText[idx];
+        setDisplayedHistoricalText((prev) => prev + char);
+        const baseDelay = getTypingDelay(char);
+        const delay =
+          idx >= ageTextStartIndex
+            ? ('、,'.includes(char) ? Math.floor(baseDelay * 2.25) : Math.floor(baseDelay * 3.0625))
+            : baseDelay;
+        await sleep(delay);
+      }
+
+    };
+
+    void typeNarrative();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeYear, birthDate, historicalText, isNarrativeError, isTextLoading]);
+
+  const handleSearch = (_e?: React.FormEvent, overrideValue?: string) => {
     if (isTextLoading) return; // 多重送信ガード
     const val = overrideValue ?? inputValue;
     const isEnabled = selectedEra === '西暦' ? val.length === 4 : val.length >= 1;
@@ -176,7 +240,7 @@ function App() {
           } else {
             setBackgroundImageUrl(`https://placehold.co/1200x800/f0f0f0/f0f0f0`);
           }
-        } catch (e) {
+        } catch {
           setBackgroundImageUrl(`https://placehold.co/1200x800/f0f0f0/f0f0f0`);
         }
       };
@@ -374,28 +438,19 @@ function App() {
               </p>
             ) : (
               <div className="text-justify">
-                {(() => {
-                  // 歴史テキストを行に分割
-                  const lines = historicalText.split('。').filter(s => s.trim() !== '').map(s => `${s.trim()}。`);
-
-                  // 個人の歴史テキストを計算
-                  const personalNarrative = calculatePersonalNarrative(birthDate, activeYear!);
-                  if (personalNarrative) {
-                    lines.push(personalNarrative);
-                  }
-
-                  // 統合した配列を描画
-                  return (
-                    <>
-                      {lines.map((sentence, idx) => (
-                        <span key={idx} className="block mb-6 text-2xl font-medium text-black leading-relaxed tracking-wide">
-                          {sentence}
-                        </span>
-                      ))}
-                      
-                    </>
-                  );
-                })()}
+                <div>
+                  {(() => {
+                    const paragraphs = toNarrativeParagraphs(displayedHistoricalText || historicalText);
+                    return paragraphs.map((paragraph, idx, arr) => (
+                    <p
+                      key={`${idx}-${paragraph.slice(0, 8)}`}
+                      className={`text-2xl font-medium text-black leading-relaxed tracking-wide ${idx === arr.length - 1 ? '' : 'mb-6'}`}
+                    >
+                      {paragraph}
+                    </p>
+                    ));
+                  })()}
+                </div>
               </div>
             )}
           </div>
