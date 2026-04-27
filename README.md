@@ -28,3 +28,12 @@
 ## API配管の注意点
 - 本番のGemini通信は必ず `api/generate-narrative`（Vercel Serverless Function）経由とし、クライアントからGeminiへ直接接続しないでください。
 - APIキーはサーバー環境変数で管理し、ブラウザへ露出する実装へ戻さないこと。
+
+## デプロイ運用（Vercel）
+- 本番公開は GitHub `main` への push をトリガーに、Vercel の自動デプロイで更新する。
+- 原則として手動 `vercel --prod` は非常時のみ利用し、通常運用では実行しない。
+- 反映確認は「Vercel デプロイ成功」かつ「本番URLで主要導線の動作確認」の両方を満たして完了とする。
+
+## フォント運用ルール
+- `index.html` で配信している Google Fonts の weight 範囲を超えるクラス（例: `font-black`）は使わない。
+- タイポグラフィの見直し時は `spec.md` と `tests/QUALITY_ASSURANCE_CRITERIA.md` を同時更新し、仕様と検証観点を同期する。
