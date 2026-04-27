@@ -24,3 +24,7 @@
 - 品質保証基準の正本: `tests/QUALITY_ASSURANCE_CRITERIA.md`
 
 実装変更時は、上記2ファイルを同時に更新して整合性を維持してください。
+
+## API配管の注意点
+- 本番のGemini通信は必ず `api/generate-narrative`（Vercel Serverless Function）経由とし、クライアントからGeminiへ直接接続しないでください。
+- APIキーはサーバー環境変数で管理し、ブラウザへ露出する実装へ戻さないこと。

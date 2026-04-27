@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: 'Inter', 'Noto Sans JP', sans-serif;
+  --font-sans: 'Noto Sans JP', sans-serif;
   --font-serif: 'Shippori Mincho', serif;
+  --font-display: 'Shippori Mincho', serif;
+  --font-number: 'Playfair Display', serif;
 }
 
 @layer base {
@@ -27,11 +29,22 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: var(--font-sans);
+  font-stretch: 90%;
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+}
+
+.font-number {
+  font-family: var(--font-number);
+  font-weight: 400;
+}
+
+.narrative-serif {
+  font-family: var(--font-serif);
+  font-stretch: normal;
 }
 
 #root {
@@ -83,4 +96,45 @@ input[type=number] {
 
 input:focus::placeholder {
   color: transparent;
+}
+
+.hero-bg-image {
+  object-position: center 20%;
+}
+
+.hero-overlay {
+  background-color: rgba(255, 255, 255, 0.32);
+}
+
+.hero-overlay-16 {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.hero-overlay-22 {
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+.hero-overlay-28 {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+.hero-overlay-34 {
+  background-color: rgba(255, 255, 255, 0.34);
+}
+
+.hero-overlay-40 {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.hero-overlay-46 {
+  background-color: rgba(255, 255, 255, 0.46);
+}
+
+.hero-overlay-52 {
+  background-color: rgba(255, 255, 255, 0.52);
+}
+
+.era-label-result {
+  opacity: 0.6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
 }
