@@ -1,5 +1,3 @@
-import { HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
-
 // ============================================================
 // ナラティブの聖典（Narrative Bible）
 // すべての文体・トーン・形式はここで定義される唯一の正解
@@ -47,24 +45,3 @@ export const LOADING_MESSAGES = [
   "記憶の風景を再構成しています...",
 ];
 
-// ============================================================
-// Gemini セーフティ設定
-// ============================================================
-export const SAFETY_SETTINGS = [
-  {
-    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-  {
-    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-    threshold: HarmBlockThreshold.BLOCK_NONE,
-  },
-];
