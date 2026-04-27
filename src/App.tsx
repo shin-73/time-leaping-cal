@@ -459,13 +459,13 @@ function App() {
         <div className="fixed top-4 right-4 flex items-center gap-2 z-[60] pt-[env(safe-area-inset-top,0px)] pr-[env(safe-area-inset-right,0px)]">
           <button 
             onClick={() => openPanel('help')}
-            className="p-4 text-black/30 hover:text-black/50 active:text-black/70 focus-visible:text-black/70 transition-colors"
+            className="p-4 text-black/50 hover:text-black/70 active:text-black/90 focus-visible:text-black/90 transition-colors"
           >
             <HelpCircle className="w-6 h-6" />
           </button>
           <button 
             onClick={() => openPanel('settings')}
-            className="p-4 text-black/30 hover:text-black/50 active:text-black/70 focus-visible:text-black/70 transition-colors"
+            className="p-4 text-black/50 hover:text-black/70 active:text-black/90 focus-visible:text-black/90 transition-colors"
           >
             <Settings className="w-6 h-6" />
           </button>
@@ -480,7 +480,7 @@ function App() {
               url.search = '';
               window.history.pushState({}, '', url);
             }}
-            className="fixed z-[60] top-[max(1.5rem,env(safe-area-inset-top,0px))] left-3 p-3 text-black/30 hover:text-black/50 active:text-black/70 focus-visible:text-black/70 transition-colors"
+            className="fixed z-[60] top-[max(1.5rem,env(safe-area-inset-top,0px))] left-3 p-3 text-black/50 hover:text-black/70 active:text-black/90 focus-visible:text-black/90 transition-colors"
           >
             <ChevronLeft className="w-7 h-7" />
           </button>
