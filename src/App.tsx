@@ -11,9 +11,64 @@ const getTypingDelay = (char: string) => {
   if ('、,'.includes(char)) return 180;
   return 26;
 };
+const getLoadingTypingDelay = (char: string) => Math.floor(getTypingDelay(char) * 4);
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const REQUEST_TIMEOUT_MS = 60000;
+const OVERLAY_OPACITY_MIN = 0.16;
+const OVERLAY_OPACITY_MAX = 0.52;
+const DEFAULT_OVERLAY_OPACITY = 0.32;
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+const getOverlayClassName = (opacity: number) => {
+  if (opacity >= 0.5) return 'hero-overlay hero-overlay-52';
+  if (opacity >= 0.45) return 'hero-overlay hero-overlay-46';
+  if (opacity >= 0.4) return 'hero-overlay hero-overlay-40';
+  if (opacity >= 0.35) return 'hero-overlay hero-overlay-34';
+  if (opacity >= 0.3) return 'hero-overlay hero-overlay-28';
+  if (opacity >= 0.25) return 'hero-overlay hero-overlay-22';
+  return 'hero-overlay hero-overlay-16';
+};
+
+const calculateOverlayOpacityFromImage = (imageEl: HTMLImageElement) => {
+  try {
+    const sampleSize = 48;
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return DEFAULT_OVERLAY_OPACITY;
+
+    canvas.width = sampleSize;
+    canvas.height = sampleSize;
+    context.drawImage(imageEl, 0, 0, sampleSize, sampleSize);
+
+    const { data } = context.getImageData(0, 0, sampleSize, sampleSize);
+    let luminanceTotal = 0;
+    let pixelCount = 0;
+
+    for (let idx = 0; idx < data.length; idx += 4) {
+      const alpha = data[idx + 3];
+      if (alpha === 0) continue;
+      const red = data[idx];
+      const green = data[idx + 1];
+      const blue = data[idx + 2];
+      // Rec.709 luminance for perceived brightness.
+      const luminance = (0.2126 * red + 0.7152 * green + 0.0722 * blue) / 255;
+      luminanceTotal += luminance;
+      pixelCount += 1;
+    }
+
+    if (pixelCount === 0) return DEFAULT_OVERLAY_OPACITY;
+    const averageLuminance = luminanceTotal / pixelCount;
+    const darkness = 1 - averageLuminance;
+    const overlayOpacity =
+      OVERLAY_OPACITY_MIN + darkness * (OVERLAY_OPACITY_MAX - OVERLAY_OPACITY_MIN);
+    return clamp(overlayOpacity, OVERLAY_OPACITY_MIN, OVERLAY_OPACITY_MAX);
+  } catch {
+    return DEFAULT_OVERLAY_OPACITY;
+  }
+};
 
 const toNarrativeParagraphs = (text: string): string[] =>
   text
@@ -40,31 +95,91 @@ const calculatePersonalNarrative = (birthDate: string, activeYear: number) => {
   }
 };
 
+const toInputBirthDate = (value: string) => value.replace(/[^0-9]/g, '').slice(0, 8);
+
+const toStorageBirthDate = (value: string) => {
+  if (!/^\d{8}$/.test(value)) return null;
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(4, 6));
+  const day = Number(value.slice(6, 8));
+  const candidate = new Date(year, month - 1, day);
+  const isValidDate =
+    candidate.getFullYear() === year &&
+    candidate.getMonth() === month - 1 &&
+    candidate.getDate() === day;
+  if (!isValidDate) return null;
+  return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+};
+
 function App() {
   const [inputValue, setInputValue] = useState('');
   const [activeYear, setActiveYear] = useState<number | null>(null);
   const [selectedEra, setSelectedEra] = useState<EraType>('西暦');
   const [birthDate, setBirthDate] = useState(() => localStorage.getItem('birthDate') || '');
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined'
+      ? window.matchMedia('(max-width: 640px)').matches
+      : false,
+  );
   const [showSettings, setShowSettings] = useState(false);
+  const [birthDateInput, setBirthDateInput] = useState(() => toInputBirthDate(localStorage.getItem('birthDate') || ''));
+  const [settingsError, setSettingsError] = useState('');
   const [backgroundImageUrl, setBackgroundImageUrl] = useState('');
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [historicalText, setHistoricalText] = useState('');
   const [displayedHistoricalText, setDisplayedHistoricalText] = useState('');
+  const [displayedLoadingText, setDisplayedLoadingText] = useState('');
   const [isNarrativeError, setIsNarrativeError] = useState(false);
   const [isTextLoading, setIsTextLoading] = useState(false);
-  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboardingCompleted'));
   const [errorMsg, setErrorMsg] = useState('');
+  const [overlayOpacity, setOverlayOpacity] = useState(DEFAULT_OVERLAY_OPACITY);
   const narrativeCache = useRef<Record<number, string>>({});
 
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (isTextLoading) {
-      interval = setInterval(() => {
-        setLoadingMsgIdx(prev => (prev + 1) % LOADING_MESSAGES.length);
-      }, 3000);
+    const mediaQuery = window.matchMedia('(max-width: 640px)');
+    const syncMobileState = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+    };
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener('change', syncMobileState);
+    return () => mediaQuery.removeEventListener('change', syncMobileState);
+  }, []);
+
+  useEffect(() => {
+    if (!isTextLoading) {
+      setDisplayedLoadingText('');
+      return;
     }
-    return () => clearInterval(interval);
+    let cancelled = false;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const typeLoadingMessages = async () => {
+      if (prefersReducedMotion) {
+        setDisplayedLoadingText(LOADING_MESSAGES[0]);
+        return;
+      }
+
+      let msgIdx = 0;
+      while (!cancelled) {
+        const currentMessage = LOADING_MESSAGES[msgIdx];
+        setDisplayedLoadingText('');
+        for (let idx = 0; idx < currentMessage.length; idx += 1) {
+          if (cancelled) return;
+          const char = currentMessage[idx];
+          setDisplayedLoadingText((prev) => prev + char);
+          await sleep(getLoadingTypingDelay(char));
+        }
+        await sleep(700);
+        msgIdx = (msgIdx + 1) % LOADING_MESSAGES.length;
+      }
+    };
+
+    void typeLoadingMessages();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isTextLoading]);
 
   // Scroll to top on page transition
@@ -74,9 +189,14 @@ function App() {
 
   // URL Persistence and Back Button Support
   useEffect(() => {
-    const handlePopState = () => {
+    const syncUiStateWithUrl = () => {
       const params = new URLSearchParams(window.location.search);
       const year = params.get('year');
+      const panel = params.get('panel');
+
+      setShowSettings(panel === 'settings');
+      setShowOnboarding(panel === 'help');
+
       if (!year) {
         setActiveYear(null);
         setInputValue('');
@@ -85,9 +205,52 @@ function App() {
         setInputValue(year);
       }
     };
+
+    const handlePopState = () => {
+      syncUiStateWithUrl();
+    };
+
+    syncUiStateWithUrl();
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  const openPanel = (panel: 'settings' | 'help') => {
+    if (panel === 'settings') {
+      setShowSettings(true);
+    } else {
+      setShowOnboarding(true);
+    }
+
+    if (!isMobile) return;
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('panel') === panel) return;
+    url.searchParams.set('panel', panel);
+    window.history.pushState({ panel }, '', url);
+  };
+
+  const closePanel = (panel: 'settings' | 'help') => {
+    if (isMobile) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('panel') === panel) {
+        window.history.back();
+        return;
+      }
+    }
+
+    if (panel === 'settings') {
+      setShowSettings(false);
+    } else {
+      setShowOnboarding(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!showSettings) return;
+    setBirthDateInput(toInputBirthDate(birthDate));
+    setSettingsError('');
+  }, [showSettings, birthDate]);
 
   const fetchHistoricalNarrative = async (year: number) => {
     if (narrativeCache.current[year]) {
@@ -98,7 +261,7 @@ function App() {
     setIsTextLoading(true);
     setHistoricalText('');
     setIsNarrativeError(false);
-    setLoadingMsgIdx(0);
+    setDisplayedLoadingText('');
     setDisplayedHistoricalText('');
 
     const eraData = convertAdToJapaneseEra(year);
@@ -189,7 +352,7 @@ function App() {
         const delay =
           idx >= ageTextStartIndex
             ? ('、,'.includes(char) ? Math.floor(baseDelay * 2.25) : Math.floor(baseDelay * 3.0625))
-            : baseDelay;
+            : Math.floor(baseDelay * 1.5);
         await sleep(delay);
       }
 
@@ -226,6 +389,7 @@ function App() {
     if (targetYear >= 1868 && targetYear <= new Date().getFullYear() + 5) {
       setBackgroundImageUrl('');
       setIsImageLoading(true);
+      setOverlayOpacity(DEFAULT_OVERLAY_OPACITY);
       
       const fetchImage = async () => {
         const searchQuery = `${targetYear} Japan history`;
@@ -273,15 +437,16 @@ function App() {
             <img
               src={backgroundImageUrl}
               alt={`${activeYear} background`}
-              onLoad={() => setIsImageLoading(false)}
-              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
-              style={{ objectPosition: 'center 20%' }}
+              crossOrigin="anonymous"
+              onLoad={(event) => {
+                setIsImageLoading(false);
+                setOverlayOpacity(calculateOverlayOpacityFromImage(event.currentTarget));
+              }}
+              className={`hero-bg-image absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isImageLoading ? 'opacity-0' : 'opacity-100'}`}
             />
-            {/* Minimal overlay to preserve image texture while ensuring basic legibility */}
-            <div className="absolute inset-0 bg-white/10 z-[1]"></div>
+            <div className={`${getOverlayClassName(overlayOpacity)} absolute inset-0 z-[5] transition-colors duration-700`} />
           </>
         )}
-        {activeYear && <div className="absolute inset-0 bg-white/30 z-[5]"></div>}
         
         {/* Credit Display */}
         {activeYear && (
@@ -293,14 +458,14 @@ function App() {
         {/* Header Icons - Fixed to viewport to prevent shifting and z-index issues */}
         <div className="fixed top-4 right-4 flex items-center gap-2 z-[60] pt-[env(safe-area-inset-top,0px)] pr-[env(safe-area-inset-right,0px)]">
           <button 
-            onClick={() => setShowOnboarding(true)} 
-            className={`p-4 hover:opacity-100 transition-opacity ${activeYear ? 'opacity-30' : 'opacity-10'}`}
+            onClick={() => openPanel('help')}
+            className="p-4 text-black/30 hover:text-black/50 active:text-black/70 focus-visible:text-black/70 transition-colors"
           >
             <HelpCircle className="w-6 h-6" />
           </button>
           <button 
-            onClick={() => setShowSettings(true)} 
-            className={`p-4 hover:opacity-100 transition-opacity ${activeYear ? 'opacity-30' : 'opacity-10'}`}
+            onClick={() => openPanel('settings')}
+            className="p-4 text-black/30 hover:text-black/50 active:text-black/70 focus-visible:text-black/70 transition-colors"
           >
             <Settings className="w-6 h-6" />
           </button>
@@ -315,9 +480,9 @@ function App() {
               url.search = '';
               window.history.pushState({}, '', url);
             }}
-            className="fixed top-4 left-4 p-4 hover:bg-gray-100 bg-white/50 backdrop-blur-sm z-[60] mt-[env(safe-area-inset-top,0px)] ml-[env(safe-area-inset-left,0px)]"
+            className="fixed z-[60] top-[max(1.5rem,env(safe-area-inset-top,0px))] left-3 p-3 text-black/30 hover:text-black/50 active:text-black/70 focus-visible:text-black/70 transition-colors"
           >
-            <ChevronLeft className="w-8 h-8" />
+            <ChevronLeft className="w-7 h-7" />
           </button>
         )}
 
@@ -326,8 +491,11 @@ function App() {
             {/* Header Area - Fixed height to guarantee absolute stability */}
             <div className="h-[100px] md:h-[140px] flex flex-col justify-center mb-4 md:mb-8">
               <div className={`transition-opacity duration-500 ${activeYear ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-                <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase italic leading-none">Time Leap Cal</h1>
-                <p className="text-xs tracking-tighter uppercase text-black/70 font-medium leading-none mt-4">Chronological Transition System</p>
+                <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase italic leading-none font-serif">
+                  <span>Time</span>
+                  <span className="ml-[1px]"> Leap Cal</span>
+                </h1>
+                <p className="text-xs tracking-[0.08em] uppercase text-black/80 font-medium leading-none mt-4 font-sans">Chronological Transition System</p>
               </div>
             </div>
 
@@ -381,7 +549,7 @@ function App() {
                         return currentYear.toString();
                       })()
                     } 
-                    className={`w-full bg-transparent border-none text-6xl sm:text-8xl md:text-[10rem] font-black placeholder:text-gray-200 focus:outline-none text-center leading-none p-0 m-0 tabular-nums ${activeYear ? 'cursor-default' : ''}`} 
+                    className={`w-full bg-transparent border-none text-5xl sm:text-7xl md:text-[9rem] placeholder:text-gray-200 focus:outline-none text-center leading-none p-0 m-0 tabular-nums font-number ${activeYear ? 'cursor-default' : ''}`} 
                   />
                   {/* Hidden submit button with opacity-0 to ensure mobile keyboards register it correctly without visual display */}
                   <button type="submit" className="opacity-0 absolute pointer-events-none" tabIndex={-1} aria-hidden="true">タイムリープ</button>
@@ -395,7 +563,7 @@ function App() {
                     </div>
                   )}
                   {activeYear ? (
-                    <h2 className="text-2xl sm:text-4xl md:text-5xl font-black leading-none tracking-widest text-[#d1d1d1]" style={{ textShadow: '1px 1px 0px rgba(255, 255, 255, 1), -1px -1px 0px rgba(0, 0, 0, 0.08)' }}>
+                    <h2 className="era-label-result text-2xl sm:text-4xl md:text-5xl leading-none tracking-widest text-black font-number">
                       {(() => {
                         const eraData = convertAdToJapaneseEra(activeYear);
                         return `${eraData.era}${eraData.eraYear === 1 ? '元' : eraData.eraYear}年`;
@@ -403,11 +571,11 @@ function App() {
                     </h2>
                   ) : (
                     <div className="space-y-6 md:space-y-8 w-full max-w-sm mx-auto">
-                      <div className="flex justify-center flex-wrap gap-2 md:gap-4 px-2">
+                      <div className="grid grid-cols-6 gap-3 md:gap-4 px-2">
                         {(['西暦', '明治', '大正', '昭和', '平成', '令和'] as EraType[]).map(era => (
-                          <label key={era} className="flex items-center cursor-pointer">
+                          <label key={era} className="flex w-full items-center cursor-pointer">
                             <input type="radio" checked={selectedEra === era} onChange={() => setSelectedEra(era)} className="sr-only" />
-                            <span className={`px-2 py-2 text-[10px] md:text-sm font-bold border-2 transition-all whitespace-nowrap ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-500 hover:text-black'}`}>
+                            <span className={`inline-flex w-full items-center justify-center px-2 py-2 text-sm font-bold min-h-[44px] border-2 transition-all whitespace-nowrap ${selectedEra === era ? 'bg-black text-white border-black' : 'border-transparent text-gray-500 hover:text-black'}`}>
                               {era}
                             </span>
                           </label>
@@ -434,21 +602,21 @@ function App() {
 
       {/* Results Detail Section */}
       {activeYear && (
-        <div className="py-16 md:py-32 px-8 bg-white">
+        <div className="pt-10 pb-16 md:pt-16 md:pb-32 px-8 bg-white">
           <div className="max-w-2xl mx-auto">
             {isTextLoading ? (
-              <p key={loadingMsgIdx} className="text-2xl font-medium text-black leading-relaxed tracking-wide opacity-30 animate-breathe text-justify">
-                {LOADING_MESSAGES[loadingMsgIdx]}
+              <p className="narrative-serif text-2xl font-medium text-black/55 leading-relaxed">
+                {displayedLoadingText}
               </p>
             ) : (
-              <div className="text-justify">
+              <div>
                 <div>
                   {(() => {
                     const paragraphs = toNarrativeParagraphs(displayedHistoricalText || historicalText);
                     return paragraphs.map((paragraph, idx, arr) => (
                     <p
                       key={`${idx}-${paragraph.slice(0, 8)}`}
-                      className={`text-2xl font-medium text-black leading-relaxed tracking-wide ${idx === arr.length - 1 ? '' : 'mb-6'}`}
+                      className={`narrative-serif text-2xl font-medium text-black leading-relaxed ${idx === arr.length - 1 ? '' : 'mb-6'}`}
                     >
                       {paragraph}
                     </p>
@@ -463,48 +631,74 @@ function App() {
 
       {/* Settings Modal */}
       {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
-          <div className="bg-white p-12 max-w-md w-full border border-black">
+        <div className={`fixed inset-0 z-[110] ${isMobile ? 'bg-white overflow-y-auto' : 'flex items-center justify-center p-4 bg-black/40 backdrop-blur-md'}`}>
+          <div className={`${isMobile ? 'min-h-[100dvh] px-6 pb-10 pt-[max(1.5rem,env(safe-area-inset-top,0px))]' : 'bg-white p-12 max-w-md w-full border border-black'}`}>
+            {isMobile && (
+              <button
+                onClick={() => closePanel('settings')}
+                className="mb-6 inline-flex items-center justify-center p-3 -ml-3"
+                aria-label="戻る"
+              >
+                <ChevronLeft className="w-7 h-7" />
+              </button>
+            )}
             <h2 className="text-2xl font-black uppercase mb-4">設定</h2>
             <input 
-              type="date" 
-              max="9999-12-31"
-              value={birthDate} 
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              enterKeyHint="done"
+              placeholder="YYYYMMDD"
+              value={birthDateInput}
               onChange={(e) => {
-                const val = e.target.value;
-                if (val) {
-                  const parts = val.split('-');
-                  let y = parts[0];
-                  if (y.length > 4) {
-                    y = y.slice(0, 4);
-                    setBirthDate(`${y}-${parts[1] || '01'}-${parts[2] || '01'}`);
-                    return;
-                  }
-                }
-                setBirthDate(val);
+                setBirthDateInput(toInputBirthDate(e.target.value));
+                setSettingsError('');
               }} 
-              className="w-full bg-white border border-black px-6 py-4 text-xl font-bold focus:outline-none mb-12" 
+              className="w-full box-border bg-white border border-black px-6 py-5 text-center text-xl tracking-[0.08em] focus:outline-none mb-8 font-sans"
             />
+            {settingsError && (
+              <p className="mb-6 text-xs font-bold text-red-600">{settingsError}</p>
+            )}
             <button onClick={() => {
-              setBirthDate(birthDate);
-              localStorage.setItem('birthDate', birthDate);
-              setShowSettings(false);
+              if (birthDateInput.length === 0) {
+                setBirthDate('');
+                localStorage.removeItem('birthDate');
+                closePanel('settings');
+                return;
+              }
+              const normalizedBirthDate = toStorageBirthDate(birthDateInput);
+              if (!normalizedBirthDate) {
+                setSettingsError('誕生日は YYYYMMDD の8桁で入力してください。');
+                return;
+              }
+              setBirthDate(normalizedBirthDate);
+              localStorage.setItem('birthDate', normalizedBirthDate);
+              closePanel('settings');
             }} className="w-full py-6 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-800">保存</button>
-            <button onClick={() => setShowSettings(false)} className="w-full py-4 text-[10px] font-bold uppercase tracking-widest opacity-30 mt-4">キャンセル</button>
+            <button onClick={() => closePanel('settings')} className="w-full py-4 text-[10px] font-bold uppercase tracking-widest opacity-30 mt-4">キャンセル</button>
           </div>
         </div>
       )}
 
       {/* Onboarding Guide */}
       {showOnboarding && (
-        <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md">
-          <div className="bg-white p-6 sm:p-12 w-full sm:max-w-xl h-full sm:h-auto sm:max-h-[90vh] rounded-none border-none sm:border border-black overflow-y-auto">
+        <div className={`fixed inset-0 z-[120] ${isMobile ? 'bg-white overflow-y-auto' : 'flex items-start sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-md'}`}>
+          <div className={`${isMobile ? 'min-h-[100dvh] px-6 pb-10 pt-[max(1.5rem,env(safe-area-inset-top,0px))]' : 'bg-white p-6 sm:p-12 w-full sm:max-w-xl h-full sm:h-auto sm:max-h-[90vh] rounded-none border-none sm:border border-black overflow-y-auto'}`}>
+            {isMobile && (
+              <button
+                onClick={() => closePanel('help')}
+                className="mb-6 inline-flex items-center justify-center p-3 -ml-3"
+                aria-label="戻る"
+              >
+                <ChevronLeft className="w-7 h-7" />
+              </button>
+            )}
             <div className="mt-8 sm:mt-0 mb-8">
               <h2 className="text-[10px] tracking-[0.5em] uppercase opacity-40 font-bold mb-2">Concept</h2>
               <p className="text-3xl sm:text-4xl font-black leading-tight tracking-tighter">あなたと歴史が<br />重なる場所</p>
             </div>
             
-            <div className="space-y-6 text-sm font-medium leading-relaxed text-gray-600 mb-12 max-w-md sm:mx-auto text-left sm:text-center">
+            <div className="space-y-6 text-sm font-medium leading-relaxed text-gray-600 mb-12 max-w-md sm:mx-auto text-left">
               <p>TIME LEAP CALは、西暦と和暦を変換するための道具です。</p>
               <p>同時に、指定された年の歴史的な断片を、AIがひとつの物語として再構成します。</p>
               <p>誕生年を登録し、歴史の大きな流れにあなたの歩みを重ねることで、見慣れた過去の景色が、少しだけ違って見えるかもしれません。</p>
@@ -513,7 +707,7 @@ function App() {
 
             <button 
               onClick={() => {
-                setShowOnboarding(false);
+                closePanel('help');
                 localStorage.setItem('onboardingCompleted', 'true');
               }} 
               className="w-full py-6 bg-black text-white text-sm font-black uppercase tracking-widest hover:bg-gray-900 transition-colors rounded-none"
