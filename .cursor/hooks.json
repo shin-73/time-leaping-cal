@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/version-guard.py",
+        "matcher": "^git\\s+(commit|push)\\b",
+        "failClosed": true
+      }
+    ]
+  }
+}
