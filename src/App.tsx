@@ -91,6 +91,8 @@ const calculatePersonalNarrative = (birthDate: string, activeYear: number) => {
   const age = lifeStage.age;
   if (age < 0) {
     return AGE_PHRASES.PRE_BIRTH(Math.abs(age));
+  } else if (age === 0) {
+    return AGE_PHRASES.BIRTH_YEAR;
   } else if (age > 0) {
     return AGE_PHRASES.POST_BIRTH(age);
   }
@@ -270,9 +272,7 @@ function App() {
     const eraName = `${eraData.era}${eraData.eraYear === 1 ? '元' : eraData.eraYear}年`;
 
     try {
-      const lifeStage = getLifeStage(birthDate, year);
-      const isBirthYear = lifeStage?.age === 0;
-      const prompt = PROMPT_TEMPLATE(year, eraName, isBirthYear);
+      const prompt = PROMPT_TEMPLATE(year, eraName);
       let narrative = '';
 
       if (import.meta.env.DEV) {
