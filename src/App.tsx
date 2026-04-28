@@ -3,7 +3,9 @@ import { ChevronLeft, Settings, HelpCircle } from 'lucide-react';
 import { convertAdToJapaneseEra, getLifeStage } from './data';
 import type { EraType } from './data';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { AGE_PHRASES, PROMPT_TEMPLATE, LOADING_MESSAGES } from './constants/aiConfig';
+import { PROMPT_TEMPLATE } from './features/narrative/prompts/narrativePromptTemplate';
+import { AGE_PHRASES } from './features/personal-history/agePhrases';
+import { LOADING_MESSAGES } from './shared/ui/loadingMessages';
 
 const getTypingDelay = (char: string) => {
   if (char === '\n') return 220;
@@ -18,6 +20,7 @@ const REQUEST_TIMEOUT_MS = 25000;
 const OVERLAY_OPACITY_MIN = 0.16;
 const OVERLAY_OPACITY_MAX = 0.52;
 const DEFAULT_OVERLAY_OPACITY = 0.32;
+const APP_VERSION = '0.2.0';
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
@@ -88,11 +91,10 @@ const calculatePersonalNarrative = (birthDate: string, activeYear: number) => {
   const age = lifeStage.age;
   if (age < 0) {
     return AGE_PHRASES.PRE_BIRTH(Math.abs(age));
-  } else if (age === 0) {
-    return AGE_PHRASES.BIRTH_YEAR;
-  } else {
+  } else if (age > 0) {
     return AGE_PHRASES.POST_BIRTH(age);
   }
+  return null;
 };
 
 const toInputBirthDate = (value: string) => value.replace(/[^0-9]/g, '').slice(0, 8);
@@ -268,7 +270,9 @@ function App() {
     const eraName = `${eraData.era}${eraData.eraYear === 1 ? '元' : eraData.eraYear}年`;
 
     try {
-      const prompt = PROMPT_TEMPLATE(year, eraName);
+      const lifeStage = getLifeStage(birthDate, year);
+      const isBirthYear = lifeStage?.age === 0;
+      const prompt = PROMPT_TEMPLATE(year, eraName, isBirthYear);
       let narrative = '';
 
       if (import.meta.env.DEV) {
@@ -431,7 +435,7 @@ function App() {
   return (
     <div className="min-h-[100dvh] bg-white text-black relative">
       {/* Hero Section */}
-      <div className={`w-full relative min-h-[450px] sm:min-h-[500px] justify-start pt-[120px] md:pt-[160px] overflow-hidden flex flex-col items-center ${activeYear ? 'pb-24 border-b border-black bg-[#f0f0f0]' : 'pb-[280px] bg-transparent'}`}>
+      <div className={`w-full relative min-h-[450px] sm:min-h-[500px] justify-start pt-[120px] md:pt-[160px] overflow-hidden flex flex-col items-center ${activeYear ? 'pb-24 border-b border-black bg-[#f0f0f0]' : 'pb-[340px] bg-transparent'}`}>
         {activeYear && backgroundImageUrl && (
           <>
             <img
@@ -581,6 +585,9 @@ function App() {
                           </label>
                         ))}
                       </div>
+                      <p className="mt-16 sm:hidden text-[11px] font-medium tracking-[0.2em] text-[#ccc]">
+                        v{APP_VERSION}
+                      </p>
                       <div className="pt-8 hidden sm:block">
                         <button 
                           type="submit" 
@@ -590,6 +597,9 @@ function App() {
                         >
                           タイムリープ
                         </button>
+                        <p className="mt-16 text-[11px] font-medium tracking-[0.2em] text-[#ccc]">
+                          v{APP_VERSION}
+                        </p>
                       </div>
                     </div>
                   )}
